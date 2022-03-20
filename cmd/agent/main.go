@@ -14,10 +14,10 @@ var reportInterval = 10 * time.Second
 
 func main() {
 	collector := internal.NewCollector(pollInterval, reportInterval)
-	sigChan := make(chan os.Signal, 1)
 
 	go collector.Start()
 
+	sigChan := make(chan os.Signal, 1)
 	signal.Ignore(syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 

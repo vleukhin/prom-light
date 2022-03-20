@@ -1,7 +1,8 @@
 package internal
 
 import (
-	"fmt"
+	"math/rand"
+	"runtime"
 	"time"
 )
 
@@ -14,54 +15,10 @@ type Collector struct {
 	ticker         *time.Ticker
 }
 
-func getGaugeMetricsNames() []string {
-	return []string{
-		"Alloc",
-		"BuckHashSys",
-		"Frees",
-		"GCCPUFraction",
-		"GCSys",
-		"HeapAlloc",
-		"HeapIdle",
-		"HeapInuse",
-		"HeapObjects",
-		"HeapReleased",
-		"HeapSys",
-		"LastGC",
-		"Lookups",
-		"MCacheInuse",
-		"MCacheSys",
-		"MSpanInuse",
-		"MSpanSys",
-		"Mallocs",
-		"NextGC",
-		"NumForcedGC",
-		"NumGC",
-		"OtherSys",
-		"PauseTotalNs",
-		"StackInuse",
-		"StackSys",
-		"Sys",
-		"TotalAlloc",
-		"RandomValue",
-	}
-}
-func getCounterMetricsNames() []string {
-	return []string{
-		"PollCount",
-	}
-}
-
 func NewCollector(pollInterval, _ time.Duration) Collector {
+	rand.Seed(time.Now().Unix())
 	gauges := make(map[string]gauge)
 	counters := make(map[string]counter)
-
-	for _, name := range getGaugeMetricsNames() {
-		gauges[name] = 0
-	}
-	for _, name := range getCounterMetricsNames() {
-		counters[name] = 0
-	}
 
 	ticker := time.NewTicker(pollInterval)
 
@@ -82,5 +39,37 @@ func (c *Collector) Start() {
 }
 
 func (c *Collector) Poll() {
-	fmt.Println("collect metrics")
+	m := &runtime.MemStats{}
+	runtime.ReadMemStats(m)
+
+	c.gaugeMetrics[Alloc] = gauge(m.Alloc)
+	c.gaugeMetrics[BuckHashSys] = gauge(m.BuckHashSys)
+	c.gaugeMetrics[Frees] = gauge(m.Frees)
+	c.gaugeMetrics[GCCPUFraction] = gauge(m.GCCPUFraction)
+	c.gaugeMetrics[GCSys] = gauge(m.GCSys)
+	c.gaugeMetrics[HeapAlloc] = gauge(m.HeapAlloc)
+	c.gaugeMetrics[HeapIdle] = gauge(m.HeapIdle)
+	c.gaugeMetrics[HeapInuse] = gauge(m.HeapInuse)
+	c.gaugeMetrics[HeapObjects] = gauge(m.HeapObjects)
+	c.gaugeMetrics[HeapReleased] = gauge(m.HeapReleased)
+	c.gaugeMetrics[HeapSys] = gauge(m.HeapSys)
+	c.gaugeMetrics[LastGC] = gauge(m.LastGC)
+	c.gaugeMetrics[Lookups] = gauge(m.Lookups)
+	c.gaugeMetrics[MCacheInuse] = gauge(m.MCacheInuse)
+	c.gaugeMetrics[MCacheSys] = gauge(m.MCacheSys)
+	c.gaugeMetrics[MSpanInuse] = gauge(m.MSpanInuse)
+	c.gaugeMetrics[MSpanSys] = gauge(m.MSpanSys)
+	c.gaugeMetrics[Mallocs] = gauge(m.Mallocs)
+	c.gaugeMetrics[NextGC] = gauge(m.NextGC)
+	c.gaugeMetrics[NumForcedGC] = gauge(m.NumForcedGC)
+	c.gaugeMetrics[NumGC] = gauge(m.NumGC)
+	c.gaugeMetrics[OtherSys] = gauge(m.OtherSys)
+	c.gaugeMetrics[PauseTotalNs] = gauge(m.PauseTotalNs)
+	c.gaugeMetrics[StackInuse] = gauge(m.StackInuse)
+	c.gaugeMetrics[StackSys] = gauge(m.StackSys)
+	c.gaugeMetrics[Sys] = gauge(m.Sys)
+	c.gaugeMetrics[TotalAlloc] = gauge(m.TotalAlloc)
+	c.gaugeMetrics[RandomValue] = gauge(rand.Intn(100))
+
+	c.counterMetrics[PollCount]++
 }
