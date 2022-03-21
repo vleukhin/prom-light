@@ -25,9 +25,7 @@ func main() {
 	signal.Ignore(syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
-	select {
-	case <-sigChan:
-		fmt.Println("Terminating...")
-		os.Exit(0)
-	}
+	<-sigChan
+	fmt.Println("Terminating...")
+	os.Exit(0)
 }

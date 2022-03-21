@@ -98,27 +98,32 @@ func (c *Collector) poll() {
 }
 
 func (c *Collector) report() {
-	var reportUrl string
+	var reportURL string
 	for name, value := range c.gaugeMetrics {
-		reportUrl = c.buildMetricUrl(gaugeTypeName, name) + fmt.Sprintf("%f", value)
-		err := c.sendReportRequest(reportUrl, name)
+		reportURL = c.buildMetricURL(gaugeTypeName, name) + fmt.Sprintf("%f", value)
+		err := c.sendReportRequest(reportURL, name)
 		if err != nil {
 			continue
 		}
 	}
 	for name, value := range c.counterMetrics {
-		reportUrl = c.buildMetricUrl(counterTypeName, name) + fmt.Sprintf("%d", value)
-		err := c.sendReportRequest(reportUrl, name)
+		reportURL = c.buildMetricURL(counterTypeName, name) + fmt.Sprintf("%d", value)
+		err := c.sendReportRequest(reportURL, name)
 		if err != nil {
 			continue
 		}
 	}
 }
 
-func (c *Collector) sendReportRequest(reportUrl, metricName string) error {
-	resp, err := c.client.Post(reportUrl, "text/plain", nil)
+func (c *Collector) sendReportRequest(reportURL, metricName string) error {
+	resp, err := c.client.Post(reportURL, "text/plain", nil)
 	if err != nil {
 		fmt.Println("Error occurred while reporting " + metricName + " metric:" + err.Error())
+		return err
+	}
+	err = resp.Body.Close()
+	if err != nil {
+		fmt.Println("Error while closing response body:" + err.Error())
 		return err
 	}
 	if resp.StatusCode != http.StatusOK {
@@ -129,6 +134,6 @@ func (c *Collector) sendReportRequest(reportUrl, metricName string) error {
 	return nil
 }
 
-func (c *Collector) buildMetricUrl(metricType, name string) string {
+func (c *Collector) buildMetricURL(metricType, name string) string {
 	return fmt.Sprintf("http://%s:%d/update/%s/%s/", c.cfg.ServerHost, c.cfg.ServerPort, metricType, name)
 }
