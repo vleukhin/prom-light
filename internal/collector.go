@@ -1,44 +1,67 @@
 package internal
 
 import (
+	"errors"
+	"fmt"
 	"math/rand"
+	"net/http"
 	"runtime"
+	"strconv"
 	"time"
 )
 
 type gauge float64
 type counter int64
 
+const gaugeTypeName = "gauge"
+const counterTypeName = "counter"
+
+type CollectorConfig struct {
+	PollInterval   time.Duration
+	ReportInterval time.Duration
+	ReportTimeout  time.Duration
+	ServerHost     string
+	ServerPort     uint32
+}
+
 type Collector struct {
 	gaugeMetrics   map[string]gauge
 	counterMetrics map[string]counter
-	ticker         *time.Ticker
+	pollTicker     *time.Ticker
+	reportTicker   *time.Ticker
+	client         http.Client
+	cfg            CollectorConfig
 }
 
-func NewCollector(pollInterval, _ time.Duration) Collector {
+func NewCollector(config CollectorConfig) Collector {
 	rand.Seed(time.Now().Unix())
-	gauges := make(map[string]gauge)
-	counters := make(map[string]counter)
 
-	ticker := time.NewTicker(pollInterval)
+	client := http.Client{}
+	client.Timeout = config.ReportTimeout
 
 	return Collector{
-		gauges,
-		counters,
-		ticker,
+		make(map[string]gauge),
+		make(map[string]counter),
+		time.NewTicker(config.PollInterval),
+		time.NewTicker(config.ReportInterval),
+		client,
+		config,
 	}
 }
 
 func (c *Collector) Start() {
 	for {
 		select {
-		case <-c.ticker.C:
-			c.Poll()
+		case <-c.pollTicker.C:
+			c.poll()
+		case <-c.reportTicker.C:
+			c.report()
 		}
 	}
 }
 
-func (c *Collector) Poll() {
+func (c *Collector) poll() {
+	fmt.Println("Poll metrics")
 	m := &runtime.MemStats{}
 	runtime.ReadMemStats(m)
 
@@ -72,4 +95,40 @@ func (c *Collector) Poll() {
 	c.gaugeMetrics[RandomValue] = gauge(rand.Intn(100))
 
 	c.counterMetrics[PollCount]++
+}
+
+func (c *Collector) report() {
+	var reportUrl string
+	for name, value := range c.gaugeMetrics {
+		reportUrl = c.buildMetricUrl(gaugeTypeName, name) + fmt.Sprintf("%f", value)
+		err := c.sendReportRequest(reportUrl, name)
+		if err != nil {
+			continue
+		}
+	}
+	for name, value := range c.counterMetrics {
+		reportUrl = c.buildMetricUrl(counterTypeName, name) + fmt.Sprintf("%d", value)
+		err := c.sendReportRequest(reportUrl, name)
+		if err != nil {
+			continue
+		}
+	}
+}
+
+func (c *Collector) sendReportRequest(reportUrl, metricName string) error {
+	resp, err := c.client.Post(reportUrl, "text/plain", nil)
+	if err != nil {
+		fmt.Println("Error occurred while reporting " + metricName + " metric:" + err.Error())
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		fmt.Println("Bad response while reporting " + metricName + " metric:" + strconv.Itoa(resp.StatusCode))
+		return errors.New("bad response")
+	}
+
+	return nil
+}
+
+func (c *Collector) buildMetricUrl(metricType, name string) string {
+	return fmt.Sprintf("http://%s:%d/update/%s/%s/", c.cfg.ServerHost, c.cfg.ServerPort, metricType, name)
 }

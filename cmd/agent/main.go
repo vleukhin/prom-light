@@ -9,11 +9,15 @@ import (
 	"time"
 )
 
-var pollInterval = 2 * time.Second
-var reportInterval = 10 * time.Second
-
 func main() {
-	collector := internal.NewCollector(pollInterval, reportInterval)
+	cfg := internal.CollectorConfig{
+		PollInterval:   2 * time.Second,
+		ReportInterval: 10 * time.Second,
+		ReportTimeout:  1 * time.Second,
+		ServerHost:     "127.0.0.1",
+		ServerPort:     8080,
+	}
+	collector := internal.NewCollector(cfg)
 
 	go collector.Start()
 
