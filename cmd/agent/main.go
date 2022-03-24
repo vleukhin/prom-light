@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/vleukhin/prom-light/internal"
 	"os"
 	"os/signal"
 	"syscall"
@@ -10,14 +9,14 @@ import (
 )
 
 func main() {
-	cfg := internal.CollectorConfig{
+	cfg := CollectorConfig{
 		PollInterval:   2 * time.Second,
 		ReportInterval: 10 * time.Second,
 		ReportTimeout:  1 * time.Second,
 		ServerHost:     "127.0.0.1",
 		ServerPort:     8080,
 	}
-	collector := internal.NewCollector(cfg)
+	collector := NewCollector(cfg)
 
 	go collector.Start()
 
