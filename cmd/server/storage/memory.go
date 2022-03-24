@@ -9,9 +9,9 @@ func NewMemoryStorage() MemoryStorage {
 	return MemoryStorage{}
 }
 
-func (m MemoryStorage) StoreGauge(metricType internal.MetricTypeName, metricName string, value internal.Gauge) {
+func (m MemoryStorage) StoreGauge(metricName string, value internal.Gauge) {
 
 }
-func (m MemoryStorage) StoreCounter(metricType internal.MetricTypeName, metricName string, value internal.Counter) {
+func (m MemoryStorage) StoreCounter(metricName string, value internal.Counter) {
 
 }
