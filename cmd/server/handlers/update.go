@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"github.com/vleukhin/prom-light/internal"
 	"net/http"
 	"regexp"
@@ -50,6 +51,7 @@ func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+		fmt.Printf("Received gauge %s with value %f \n", params["mName"], value)
 		h.storage.StoreGauge(params["mName"], internal.Gauge(value))
 	case internal.CounterTypeName:
 		value, err := strconv.ParseInt(params["mValue"], 10, 64)
@@ -57,6 +59,7 @@ func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+		fmt.Printf("Received counter %s with value %d \n", params["mName"], value)
 		h.storage.StoreCounter(params["mName"], internal.Counter(value))
 	}
 

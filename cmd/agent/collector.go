@@ -108,6 +108,7 @@ func (c *Collector) report() {
 		if err != nil {
 			continue
 		}
+		c.counterMetrics[name] = 0
 	}
 }
 
