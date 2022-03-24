@@ -3,8 +3,10 @@ package internal
 type Gauge float64
 type Counter int64
 
-const GaugeTypeName = "Gauge"
-const CounterTypeName = "Counter"
+type MetricTypeName string
+
+const GaugeTypeName MetricTypeName = "Gauge"
+const CounterTypeName MetricTypeName = "Counter"
 
 const (
 	Alloc         = "Alloc"
@@ -37,3 +39,7 @@ const (
 	RandomValue   = "RandomValue"
 	PollCount     = "PollCount"
 )
+
+func (m MetricTypeName) String() string {
+	return string(m)
+}

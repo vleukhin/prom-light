@@ -56,7 +56,7 @@ func (c *Collector) Start() {
 }
 
 func (c *Collector) poll() {
-	fmt.Println("Poll metrics")
+	fmt.Println("Polling metrics")
 	m := &runtime.MemStats{}
 	runtime.ReadMemStats(m)
 
@@ -93,16 +93,17 @@ func (c *Collector) poll() {
 }
 
 func (c *Collector) report() {
+	fmt.Println("Sending metrics")
 	var reportURL string
 	for name, value := range c.gaugeMetrics {
-		reportURL = c.buildMetricURL(internal.GaugeTypeName, name) + fmt.Sprintf("%f", value)
+		reportURL = c.buildMetricURL(internal.GaugeTypeName.String(), name) + fmt.Sprintf("%f", value)
 		err := c.sendReportRequest(reportURL, name)
 		if err != nil {
 			continue
 		}
 	}
 	for name, value := range c.counterMetrics {
-		reportURL = c.buildMetricURL(internal.CounterTypeName, name) + fmt.Sprintf("%d", value)
+		reportURL = c.buildMetricURL(internal.CounterTypeName.String(), name) + fmt.Sprintf("%d", value)
 		err := c.sendReportRequest(reportURL, name)
 		if err != nil {
 			continue
