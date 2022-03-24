@@ -63,6 +63,30 @@ func TestUpdateMetricHandler_ServeHTTP(t *testing.T) {
 				counterValue: 5,
 			},
 		},
+		{
+			name:    "POST none value to gauge",
+			request: httptest.NewRequest(http.MethodPost, "/update/gauge/testCounter/none", nil),
+			want: want{
+				code:    400,
+				success: false,
+			},
+		},
+		{
+			name:    "POST none value to coutner",
+			request: httptest.NewRequest(http.MethodPost, "/update/counter/testCounter/none", nil),
+			want: want{
+				code:    400,
+				success: false,
+			},
+		},
+		{
+			name:    "POST unknown metric type",
+			request: httptest.NewRequest(http.MethodPost, "/update/unknown/testCounter/none", nil),
+			want: want{
+				code:    501,
+				success: false,
+			},
+		},
 	}
 
 	for _, tt := range tests {

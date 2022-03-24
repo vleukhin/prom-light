@@ -29,7 +29,7 @@ func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	myExp := regexp.MustCompile(`^/update/(?P<mType>\w*)/(?P<mName>\w*)/(?P<mValue>[.\d]+)$`)
+	myExp := regexp.MustCompile(`^/update/(?P<mType>\w*)/(?P<mName>\w*)/(?P<mValue>[.\w]+)$`)
 	match := myExp.FindStringSubmatch(r.RequestURI)
 
 	if len(match) == 0 {
@@ -62,7 +62,7 @@ func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Received counter %s with value %d \n", params["mName"], value)
 		h.storage.StoreCounter(params["mName"], internal.Counter(value))
 	default:
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}
 
