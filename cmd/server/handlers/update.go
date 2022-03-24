@@ -61,6 +61,9 @@ func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		fmt.Printf("Received counter %s with value %d \n", params["mName"], value)
 		h.storage.StoreCounter(params["mName"], internal.Counter(value))
+	default:
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	_, err := w.Write([]byte("Updated"))

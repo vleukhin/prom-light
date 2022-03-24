@@ -5,8 +5,8 @@ type Counter int64
 
 type MetricTypeName string
 
-const GaugeTypeName MetricTypeName = "Gauge"
-const CounterTypeName MetricTypeName = "Counter"
+const GaugeTypeName MetricTypeName = "gauge"
+const CounterTypeName MetricTypeName = "counter"
 
 const (
 	Alloc         = "Alloc"
