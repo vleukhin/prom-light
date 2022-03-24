@@ -74,6 +74,7 @@ func TestUpdateMetricHandler_ServeHTTP(t *testing.T) {
 			}
 			h.ServeHTTP(w, tt.request)
 			response := w.Result()
+			defer response.Body.Close()
 			require.Equal(t, tt.want.code, response.StatusCode)
 
 			if tt.want.success {

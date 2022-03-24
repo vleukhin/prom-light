@@ -29,7 +29,7 @@ func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	myExp := regexp.MustCompile("^/update/(?P<mType>\\w*)/(?P<mName>\\w*)/(?P<mValue>[.\\d]+)$")
+	myExp := regexp.MustCompile(`^/update/(?P<mType>\w*)/(?P<mName>\w*)/(?P<mValue>[.\d]+)$`)
 	match := myExp.FindStringSubmatch(r.RequestURI)
 
 	if len(match) == 0 {
