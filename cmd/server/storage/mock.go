@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/vleukhin/prom-light/cmd/server/handlers"
 	"github.com/vleukhin/prom-light/internal"
 	"testing"
 )
@@ -54,4 +55,11 @@ func (s MockStorage) GetCounter(name string) (internal.Counter, error) {
 		return 0, errors.New("unknown counter")
 	}
 	return value, nil
+}
+
+func (s MockStorage) GetAllMetrics() handlers.AllMetrics {
+	return handlers.AllMetrics{
+		GaugeMetrics:   s.gaugeMetrics,
+		CounterMetrics: s.counterMetrics,
+	}
 }

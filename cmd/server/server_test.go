@@ -235,3 +235,16 @@ func TestGetMetricHandler_ServeHTTP(t *testing.T) {
 		})
 	}
 }
+
+func TestHomeHandler_ServeHTTP(t *testing.T) {
+	mockStorage := storage.NewMockStorage()
+	testServer := httptest.NewServer(NewRouter(mockStorage))
+	req, err := http.NewRequest(http.MethodGet, testServer.URL, nil)
+	require.NoError(t, err)
+
+	response, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+
+	defer response.Body.Close()
+	require.Equal(t, http.StatusOK, response.StatusCode)
+}

@@ -2,6 +2,7 @@ package storage
 
 import (
 	"errors"
+	"github.com/vleukhin/prom-light/cmd/server/handlers"
 	"github.com/vleukhin/prom-light/internal"
 )
 
@@ -45,4 +46,11 @@ func (m MemoryStorage) GetCounter(name string) (internal.Counter, error) {
 	}
 
 	return value, nil
+}
+
+func (m MemoryStorage) GetAllMetrics() handlers.AllMetrics {
+	return handlers.AllMetrics{
+		GaugeMetrics:   m.gaugeMetrics,
+		CounterMetrics: m.counterMetrics,
+	}
 }
