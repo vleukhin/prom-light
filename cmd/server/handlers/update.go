@@ -28,7 +28,7 @@ func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		fmt.Printf("Received gauge %s with value %f \n", params["name"], value)
+		fmt.Printf("Received gauge %s with value %.3f \n", params["name"], value)
 		h.storage.StoreGauge(params["name"], internal.Gauge(value))
 	case internal.CounterTypeName:
 		value, err := strconv.ParseInt(params["value"], 10, 64)

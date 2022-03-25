@@ -29,7 +29,7 @@ func (h GetMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, err = w.Write([]byte(fmt.Sprintf("%f", value)))
+		_, err = w.Write([]byte(fmt.Sprintf("%.3f", value)))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

@@ -175,7 +175,7 @@ func TestGetMetricHandler_ServeHTTP(t *testing.T) {
 			},
 			want: want{
 				code:  200,
-				value: "10.250000",
+				value: "10.250",
 			},
 		},
 		{

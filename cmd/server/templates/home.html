@@ -22,7 +22,7 @@
                 <tr>
                     <td>{{ $name }}</td>
                     <td>gauge</td>
-                    <td>{{ $value | printf "%f" }}</td>
+                    <td>{{ $value | printf "%.3f" }}</td>
                 </tr>
             {{- end }}
             {{- range $name, $value := .CounterMetrics }}
