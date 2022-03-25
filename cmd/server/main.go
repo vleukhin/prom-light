@@ -2,19 +2,18 @@ package main
 
 import (
 	"fmt"
-	"github.com/vleukhin/prom-light/cmd/server/server"
 	"os"
 	"os/signal"
 	"syscall"
 )
 
 func main() {
-	cfg := server.ServerConfig{
+	cfg := ServerConfig{
 		Addr: "0.0.0.0",
 		Port: 8080,
 	}
 
-	s := server.NewMetricsServer(cfg)
+	s := NewMetricsServer(cfg)
 	errChan := make(chan error)
 	sigChan := make(chan os.Signal, 1)
 
