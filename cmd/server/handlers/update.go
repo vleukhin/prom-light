@@ -12,11 +12,6 @@ type UpdateMetricHandler struct {
 	storage MetricsStorage
 }
 
-type MetricsStorage interface {
-	StoreGauge(metricName string, value internal.Gauge)
-	StoreCounter(metricName string, value internal.Counter)
-}
-
 func NewUpdateMetricHandler(storage MetricsStorage) UpdateMetricHandler {
 	return UpdateMetricHandler{
 		storage: storage,

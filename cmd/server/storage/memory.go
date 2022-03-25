@@ -1,6 +1,9 @@
 package storage
 
-import "github.com/vleukhin/prom-light/internal"
+import (
+	"errors"
+	"github.com/vleukhin/prom-light/internal"
+)
 
 type MemoryStorage struct {
 	gaugeMetrics   map[string]internal.Gauge
@@ -24,4 +27,22 @@ func (m MemoryStorage) StoreCounter(metricName string, value internal.Counter) {
 	}
 
 	m.counterMetrics[metricName] = oldValue + value
+}
+
+func (m MemoryStorage) GetGauge(name string) (internal.Gauge, error) {
+	value, exists := m.gaugeMetrics[name]
+	if !exists {
+		return 0, errors.New("unknown gauge")
+	}
+
+	return value, nil
+}
+
+func (m MemoryStorage) GetCounter(name string) (internal.Counter, error) {
+	value, exists := m.counterMetrics[name]
+	if !exists {
+		return 0, errors.New("unknown counter")
+	}
+
+	return value, nil
 }

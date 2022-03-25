@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/vleukhin/prom-light/internal"
@@ -36,4 +37,21 @@ func (s MockStorage) AssertCounterStoredWithValue(t *testing.T, name string, exp
 	actual, ok := s.counterMetrics[name]
 	assert.True(t, ok, fmt.Sprintf("Counter '%s' was not stored", name))
 	assert.Equal(t, expected, actual, fmt.Sprintf("Counter '%s' was stored with wrong value. Expected: %d Actual: %d", name, expected, actual))
+}
+
+func (s MockStorage) GetGauge(name string) (internal.Gauge, error) {
+	value, exists := s.gaugeMetrics[name]
+	if !exists {
+		return 0, errors.New("unknown gauge")
+	}
+
+	return value, nil
+}
+
+func (s MockStorage) GetCounter(name string) (internal.Counter, error) {
+	value, exists := s.counterMetrics[name]
+	if !exists {
+		return 0, errors.New("unknown counter")
+	}
+	return value, nil
 }
