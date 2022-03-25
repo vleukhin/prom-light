@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"fmt"
+	"github.com/gorilla/mux"
 	"github.com/vleukhin/prom-light/internal"
 	"net/http"
-	"regexp"
 	"strconv"
 )
 
@@ -24,43 +24,25 @@ func NewUpdateMetricHandler(storage MetricsStorage) UpdateMetricHandler {
 }
 
 func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
+	params := mux.Vars(r)
 
-	myExp := regexp.MustCompile(`^/update/(?P<mType>\w*)/(?P<mName>\w*)/(?P<mValue>[.\w]+)$`)
-	match := myExp.FindStringSubmatch(r.RequestURI)
-
-	if len(match) == 0 {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
-	params := make(map[string]string)
-	for i, name := range myExp.SubexpNames() {
-		if i != 0 && name != "" {
-			params[name] = match[i]
-		}
-	}
-
-	switch internal.MetricTypeName(params["mType"]) {
+	switch internal.MetricTypeName(params["type"]) {
 	case internal.GaugeTypeName:
-		value, err := strconv.ParseFloat(params["mValue"], 64)
+		value, err := strconv.ParseFloat(params["value"], 64)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		fmt.Printf("Received gauge %s with value %f \n", params["mName"], value)
-		h.storage.StoreGauge(params["mName"], internal.Gauge(value))
+		fmt.Printf("Received gauge %s with value %f \n", params["name"], value)
+		h.storage.StoreGauge(params["name"], internal.Gauge(value))
 	case internal.CounterTypeName:
-		value, err := strconv.ParseInt(params["mValue"], 10, 64)
+		value, err := strconv.ParseInt(params["value"], 10, 64)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		fmt.Printf("Received counter %s with value %d \n", params["mName"], value)
-		h.storage.StoreCounter(params["mName"], internal.Counter(value))
+		fmt.Printf("Received counter %s with value %d \n", params["name"], value)
+		h.storage.StoreCounter(params["name"], internal.Counter(value))
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		return
