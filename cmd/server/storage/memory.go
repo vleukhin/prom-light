@@ -24,20 +24,22 @@ func NewMemoryStorage() MemoryStorage {
 
 func (m MemoryStorage) SetGauge(metricName string, value metrics.Gauge) {
 	m.mutex.Lock()
+	defer m.mutex.Lock()
 	m.gaugeMetrics[metricName] = value
-	m.mutex.Unlock()
 }
 func (m MemoryStorage) SetCounter(metricName string, value metrics.Counter) {
 	m.mutex.Lock()
+	defer m.mutex.Lock()
 	oldValue, ok := m.counterMetrics[metricName]
 	if !ok {
 		oldValue = 0
 	}
 	m.counterMetrics[metricName] = oldValue + value
-	m.mutex.Unlock()
 }
 
 func (m MemoryStorage) GetGauge(name string) (metrics.Gauge, error) {
+	m.mutex.Lock()
+	defer m.mutex.Lock()
 	value, exists := m.gaugeMetrics[name]
 	if !exists {
 		return 0, errors.New("unknown gauge")
@@ -47,6 +49,8 @@ func (m MemoryStorage) GetGauge(name string) (metrics.Gauge, error) {
 }
 
 func (m MemoryStorage) GetCounter(name string) (metrics.Counter, error) {
+	m.mutex.Lock()
+	defer m.mutex.Lock()
 	value, exists := m.counterMetrics[name]
 	if !exists {
 		return 0, errors.New("unknown counter")
@@ -56,6 +60,8 @@ func (m MemoryStorage) GetCounter(name string) (metrics.Counter, error) {
 }
 
 func (m MemoryStorage) GetAllMetrics() AllMetrics {
+	m.mutex.Lock()
+	defer m.mutex.Lock()
 	return AllMetrics{
 		GaugeMetrics:   m.gaugeMetrics,
 		CounterMetrics: m.counterMetrics,
