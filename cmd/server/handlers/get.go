@@ -7,7 +7,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/vleukhin/prom-light/cmd/server/storage"
-	"github.com/vleukhin/prom-light/internal"
+	"github.com/vleukhin/prom-light/internal/metrics"
 )
 
 type GetMetricHandler struct {
@@ -24,8 +24,8 @@ func (h GetMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
 	w.Header().Add("Content-type", "text/html")
-	switch internal.MetricTypeName(params["type"]) {
-	case internal.GaugeTypeName:
+	switch metrics.MetricTypeName(params["type"]) {
+	case metrics.GaugeTypeName:
 		value, err := h.store.GetGauge(params["name"])
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
@@ -38,7 +38,7 @@ func (h GetMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-	case internal.CounterTypeName:
+	case metrics.CounterTypeName:
 		value, err := h.store.GetCounter(params["name"])
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)

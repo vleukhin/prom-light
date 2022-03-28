@@ -4,30 +4,30 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/vleukhin/prom-light/internal"
+	"github.com/vleukhin/prom-light/internal/metrics"
 )
 
 type MemoryStorage struct {
 	mutex          *sync.Mutex
-	gaugeMetrics   map[string]internal.Gauge
-	counterMetrics map[string]internal.Counter
+	gaugeMetrics   map[string]metrics.Gauge
+	counterMetrics map[string]metrics.Counter
 }
 
 func NewMemoryStorage() MemoryStorage {
 	var mutex sync.Mutex
 	return MemoryStorage{
 		mutex:          &mutex,
-		gaugeMetrics:   make(map[string]internal.Gauge),
-		counterMetrics: make(map[string]internal.Counter),
+		gaugeMetrics:   make(map[string]metrics.Gauge),
+		counterMetrics: make(map[string]metrics.Counter),
 	}
 }
 
-func (m MemoryStorage) SetGauge(metricName string, value internal.Gauge) {
+func (m MemoryStorage) SetGauge(metricName string, value metrics.Gauge) {
 	m.mutex.Lock()
 	m.gaugeMetrics[metricName] = value
 	m.mutex.Unlock()
 }
-func (m MemoryStorage) SetCounter(metricName string, value internal.Counter) {
+func (m MemoryStorage) SetCounter(metricName string, value metrics.Counter) {
 	m.mutex.Lock()
 	oldValue, ok := m.counterMetrics[metricName]
 	if !ok {
@@ -37,7 +37,7 @@ func (m MemoryStorage) SetCounter(metricName string, value internal.Counter) {
 	m.mutex.Unlock()
 }
 
-func (m MemoryStorage) GetGauge(name string) (internal.Gauge, error) {
+func (m MemoryStorage) GetGauge(name string) (metrics.Gauge, error) {
 	value, exists := m.gaugeMetrics[name]
 	if !exists {
 		return 0, errors.New("unknown gauge")
@@ -46,7 +46,7 @@ func (m MemoryStorage) GetGauge(name string) (internal.Gauge, error) {
 	return value, nil
 }
 
-func (m MemoryStorage) GetCounter(name string) (internal.Counter, error) {
+func (m MemoryStorage) GetCounter(name string) (metrics.Counter, error) {
 	value, exists := m.counterMetrics[name]
 	if !exists {
 		return 0, errors.New("unknown counter")

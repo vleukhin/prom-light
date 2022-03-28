@@ -1,10 +1,12 @@
 package storage
 
-import "github.com/vleukhin/prom-light/internal"
+import (
+	"github.com/vleukhin/prom-light/internal/metrics"
+)
 
 type AllMetrics struct {
-	GaugeMetrics   map[string]internal.Gauge
-	CounterMetrics map[string]internal.Counter
+	GaugeMetrics   map[string]metrics.Gauge
+	CounterMetrics map[string]metrics.Counter
 }
 
 type MetricsStorage interface {
@@ -13,12 +15,12 @@ type MetricsStorage interface {
 }
 
 type MetricsGetter interface {
-	GetGauge(metricName string) (internal.Gauge, error)
-	GetCounter(metricName string) (internal.Counter, error)
+	GetGauge(metricName string) (metrics.Gauge, error)
+	GetCounter(metricName string) (metrics.Counter, error)
 	GetAllMetrics() AllMetrics
 }
 
 type MetricsSetter interface {
-	SetGauge(metricName string, value internal.Gauge)
-	SetCounter(metricName string, value internal.Counter)
+	SetGauge(metricName string, value metrics.Gauge)
+	SetCounter(metricName string, value metrics.Counter)
 }

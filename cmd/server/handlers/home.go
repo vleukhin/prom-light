@@ -18,7 +18,7 @@ func NewHomeHandler(storage storage.MetricsGetter) HomeHandler {
 	}
 }
 
-func (h HomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h HomeHandler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	fp := path.Join("templates", "home.html")
 	tmpl, err := template.ParseFiles(fp)
 	if err != nil {

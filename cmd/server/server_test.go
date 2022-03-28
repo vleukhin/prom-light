@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/vleukhin/prom-light/internal"
+	"github.com/vleukhin/prom-light/internal/metrics"
 
 	"github.com/stretchr/testify/require"
 	"github.com/vleukhin/prom-light/cmd/server/storage"
@@ -22,8 +22,8 @@ func TestUpdateMetricHandler_ServeHTTP(t *testing.T) {
 		code         int
 		success      bool
 		metricName   string
-		gaugeValue   internal.Gauge
-		counterValue internal.Counter
+		gaugeValue   metrics.Gauge
+		counterValue metrics.Counter
 	}
 
 	tests := []struct {
@@ -147,8 +147,8 @@ func TestGetMetricHandler_ServeHTTP(t *testing.T) {
 		value string
 	}
 	type storedMetrics struct {
-		gauges   map[string]internal.Gauge
-		counters map[string]internal.Counter
+		gauges   map[string]metrics.Gauge
+		counters map[string]metrics.Counter
 	}
 	tests := []struct {
 		name    string
@@ -173,7 +173,7 @@ func TestGetMetricHandler_ServeHTTP(t *testing.T) {
 				method: http.MethodGet,
 			},
 			metrics: storedMetrics{
-				gauges: map[string]internal.Gauge{"test": 10.25},
+				gauges: map[string]metrics.Gauge{"test": 10.25},
 			},
 			want: want{
 				code:  200,
@@ -187,7 +187,7 @@ func TestGetMetricHandler_ServeHTTP(t *testing.T) {
 				method: http.MethodGet,
 			},
 			metrics: storedMetrics{
-				counters: map[string]internal.Counter{"test": 99},
+				counters: map[string]metrics.Counter{"test": 99},
 			},
 			want: want{
 				code:  200,
