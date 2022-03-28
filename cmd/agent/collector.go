@@ -55,6 +55,11 @@ func (c *Collector) Start() {
 	}
 }
 
+func (c *Collector) Stop() {
+	c.pollTicker.Stop()
+	c.reportTicker.Stop()
+}
+
 func (c *Collector) poll() {
 	fmt.Println("Polling metrics")
 	m := &runtime.MemStats{}

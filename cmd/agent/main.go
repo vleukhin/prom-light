@@ -26,5 +26,6 @@ func main() {
 
 	<-sigChan
 	fmt.Println("Terminating...")
+	collector.Stop()
 	os.Exit(0)
 }
