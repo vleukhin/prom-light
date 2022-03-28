@@ -5,18 +5,19 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/vleukhin/prom-light/internal"
-
 	"github.com/gorilla/mux"
+
+	"github.com/vleukhin/prom-light/cmd/server/storage"
+	"github.com/vleukhin/prom-light/internal"
 )
 
 type UpdateMetricHandler struct {
-	storage MetricsStorage
+	store storage.MetricsSetter
 }
 
-func NewUpdateMetricHandler(storage MetricsStorage) UpdateMetricHandler {
+func NewUpdateMetricHandler(storage storage.MetricsSetter) UpdateMetricHandler {
 	return UpdateMetricHandler{
-		storage: storage,
+		store: storage,
 	}
 }
 
@@ -31,7 +32,7 @@ func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		fmt.Printf("Received gauge %s with value %.3f \n", params["name"], value)
-		h.storage.SetGauge(params["name"], internal.Gauge(value))
+		h.store.SetGauge(params["name"], internal.Gauge(value))
 	case internal.CounterTypeName:
 		value, err := strconv.ParseInt(params["value"], 10, 64)
 		if err != nil {
@@ -39,7 +40,7 @@ func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		fmt.Printf("Received counter %s with value %d \n", params["name"], value)
-		h.storage.SetCounter(params["name"], internal.Counter(value))
+		h.store.SetCounter(params["name"], internal.Counter(value))
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		return

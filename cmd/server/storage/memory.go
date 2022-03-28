@@ -5,8 +5,6 @@ import (
 	"sync"
 
 	"github.com/vleukhin/prom-light/internal"
-
-	"github.com/vleukhin/prom-light/cmd/server/handlers"
 )
 
 type MemoryStorage struct {
@@ -57,8 +55,8 @@ func (m MemoryStorage) GetCounter(name string) (internal.Counter, error) {
 	return value, nil
 }
 
-func (m MemoryStorage) GetAllMetrics() handlers.AllMetrics {
-	return handlers.AllMetrics{
+func (m MemoryStorage) GetAllMetrics() AllMetrics {
+	return AllMetrics{
 		GaugeMetrics:   m.gaugeMetrics,
 		CounterMetrics: m.counterMetrics,
 	}

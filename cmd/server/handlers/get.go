@@ -5,16 +5,18 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+
+	"github.com/vleukhin/prom-light/cmd/server/storage"
 	"github.com/vleukhin/prom-light/internal"
 )
 
 type GetMetricHandler struct {
-	storage MetricsStorage
+	store storage.MetricsGetter
 }
 
-func NewGetMetricHandler(storage MetricsStorage) GetMetricHandler {
+func NewGetMetricHandler(storage storage.MetricsGetter) GetMetricHandler {
 	return GetMetricHandler{
-		storage: storage,
+		store: storage,
 	}
 }
 
@@ -24,7 +26,7 @@ func (h GetMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-type", "text/html")
 	switch internal.MetricTypeName(params["type"]) {
 	case internal.GaugeTypeName:
-		value, err := h.storage.GetGauge(params["name"])
+		value, err := h.store.GetGauge(params["name"])
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -37,7 +39,7 @@ func (h GetMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 	case internal.CounterTypeName:
-		value, err := h.storage.GetCounter(params["name"])
+		value, err := h.store.GetCounter(params["name"])
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return

@@ -4,15 +4,17 @@ import (
 	"html/template"
 	"net/http"
 	"path"
+
+	"github.com/vleukhin/prom-light/cmd/server/storage"
 )
 
 type HomeHandler struct {
-	storage MetricsStorage
+	store storage.MetricsGetter
 }
 
-func NewHomeHandler(storage MetricsStorage) HomeHandler {
+func NewHomeHandler(storage storage.MetricsGetter) HomeHandler {
 	return HomeHandler{
-		storage: storage,
+		store: storage,
 	}
 }
 
@@ -24,7 +26,7 @@ func (h HomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := tmpl.Execute(w, h.storage.GetAllMetrics()); err != nil {
+	if err := tmpl.Execute(w, h.store.GetAllMetrics()); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

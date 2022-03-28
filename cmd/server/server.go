@@ -29,7 +29,7 @@ func (s MetricsServer) Run(err chan<- error) {
 	err <- http.ListenAndServe(addr, NewRouter(storage.NewMemoryStorage()))
 }
 
-func NewRouter(str handlers.MetricsStorage) *mux.Router {
+func NewRouter(str storage.MetricsStorage) *mux.Router {
 	homeHandler := handlers.NewHomeHandler(str)
 	updateHandler := handlers.NewUpdateMetricHandler(str)
 	getHandler := handlers.NewGetMetricHandler(str)
