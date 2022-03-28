@@ -22,10 +22,10 @@ func NewMockStorage() MockStorage {
 	}
 }
 
-func (s MockStorage) StoreGauge(name string, value internal.Gauge) {
+func (s MockStorage) SetGauge(name string, value internal.Gauge) {
 	s.gaugeMetrics[name] = value
 }
-func (s MockStorage) StoreCounter(name string, value internal.Counter) {
+func (s MockStorage) SetCounter(name string, value internal.Counter) {
 	s.counterMetrics[name] = value
 }
 

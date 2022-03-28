@@ -212,10 +212,10 @@ func TestGetMetricHandler_ServeHTTP(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			for name, value := range tt.metrics.gauges {
-				mockStorage.StoreGauge(name, value)
+				mockStorage.SetGauge(name, value)
 			}
 			for name, value := range tt.metrics.counters {
-				mockStorage.StoreCounter(name, value)
+				mockStorage.SetCounter(name, value)
 			}
 
 			req, err := http.NewRequest(tt.request.method, testServer.URL+tt.request.URI, nil)

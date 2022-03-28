@@ -8,8 +8,8 @@ type AllMetrics struct {
 }
 
 type MetricsStorage interface {
-	StoreGauge(metricName string, value internal.Gauge)
-	StoreCounter(metricName string, value internal.Counter)
+	SetGauge(metricName string, value internal.Gauge)
+	SetCounter(metricName string, value internal.Counter)
 	GetGauge(metricName string) (internal.Gauge, error)
 	GetCounter(metricName string) (internal.Counter, error)
 	GetAllMetrics() AllMetrics

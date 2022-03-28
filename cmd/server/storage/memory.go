@@ -19,10 +19,10 @@ func NewMemoryStorage() MemoryStorage {
 	}
 }
 
-func (m MemoryStorage) StoreGauge(metricName string, value internal.Gauge) {
+func (m MemoryStorage) SetGauge(metricName string, value internal.Gauge) {
 	m.gaugeMetrics[metricName] = value
 }
-func (m MemoryStorage) StoreCounter(metricName string, value internal.Counter) {
+func (m MemoryStorage) SetCounter(metricName string, value internal.Counter) {
 	oldValue, ok := m.counterMetrics[metricName]
 	if !ok {
 		oldValue = 0

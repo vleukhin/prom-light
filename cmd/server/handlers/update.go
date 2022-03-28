@@ -30,7 +30,7 @@ func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		fmt.Printf("Received gauge %s with value %.3f \n", params["name"], value)
-		h.storage.StoreGauge(params["name"], internal.Gauge(value))
+		h.storage.SetGauge(params["name"], internal.Gauge(value))
 	case internal.CounterTypeName:
 		value, err := strconv.ParseInt(params["value"], 10, 64)
 		if err != nil {
@@ -38,7 +38,7 @@ func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		fmt.Printf("Received counter %s with value %d \n", params["name"], value)
-		h.storage.StoreCounter(params["name"], internal.Counter(value))
+		h.storage.SetCounter(params["name"], internal.Counter(value))
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		return
