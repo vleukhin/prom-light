@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/vleukhin/prom-light/internal"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/vleukhin/prom-light/cmd/server/handlers"
-	"github.com/vleukhin/prom-light/internal"
 )
 
 type MockStorage struct {

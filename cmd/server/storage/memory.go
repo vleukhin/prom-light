@@ -2,33 +2,41 @@ package storage
 
 import (
 	"errors"
+	"sync"
+
+	"github.com/vleukhin/prom-light/internal"
 
 	"github.com/vleukhin/prom-light/cmd/server/handlers"
-	"github.com/vleukhin/prom-light/internal"
 )
 
 type MemoryStorage struct {
+	mutex          *sync.Mutex
 	gaugeMetrics   map[string]internal.Gauge
 	counterMetrics map[string]internal.Counter
 }
 
 func NewMemoryStorage() MemoryStorage {
+	var mutex sync.Mutex
 	return MemoryStorage{
+		mutex:          &mutex,
 		gaugeMetrics:   make(map[string]internal.Gauge),
 		counterMetrics: make(map[string]internal.Counter),
 	}
 }
 
 func (m MemoryStorage) SetGauge(metricName string, value internal.Gauge) {
+	m.mutex.Lock()
 	m.gaugeMetrics[metricName] = value
+	m.mutex.Unlock()
 }
 func (m MemoryStorage) SetCounter(metricName string, value internal.Counter) {
+	m.mutex.Lock()
 	oldValue, ok := m.counterMetrics[metricName]
 	if !ok {
 		oldValue = 0
 	}
-
 	m.counterMetrics[metricName] = oldValue + value
+	m.mutex.Unlock()
 }
 
 func (m MemoryStorage) GetGauge(name string) (internal.Gauge, error) {

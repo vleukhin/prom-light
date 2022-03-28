@@ -6,9 +6,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/vleukhin/prom-light/internal"
+
 	"github.com/stretchr/testify/require"
 	"github.com/vleukhin/prom-light/cmd/server/storage"
-	"github.com/vleukhin/prom-light/internal"
 )
 
 type requestOptions struct {

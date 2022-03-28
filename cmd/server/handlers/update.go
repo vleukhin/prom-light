@@ -5,8 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gorilla/mux"
 	"github.com/vleukhin/prom-light/internal"
+
+	"github.com/gorilla/mux"
 )
 
 type UpdateMetricHandler struct {
