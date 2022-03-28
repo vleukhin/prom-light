@@ -3,12 +3,13 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/vleukhin/prom-light/internal"
 	"math/rand"
 	"net/http"
 	"runtime"
 	"strconv"
 	"time"
+
+	"github.com/vleukhin/prom-light/internal"
 )
 
 type CollectorConfig struct {

@@ -2,6 +2,7 @@ package storage
 
 import (
 	"errors"
+
 	"github.com/vleukhin/prom-light/cmd/server/handlers"
 	"github.com/vleukhin/prom-light/internal"
 )

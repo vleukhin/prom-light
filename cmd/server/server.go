@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/gorilla/mux"
 	"github.com/vleukhin/prom-light/cmd/server/handlers"
 	"github.com/vleukhin/prom-light/cmd/server/storage"
-	"net/http"
 )
 
 type ServerConfig struct {

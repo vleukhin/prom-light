@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/vleukhin/prom-light/internal"
 	"net/http"
 	"strconv"
+
+	"github.com/gorilla/mux"
+	"github.com/vleukhin/prom-light/internal"
 )
 
 type UpdateMetricHandler struct {

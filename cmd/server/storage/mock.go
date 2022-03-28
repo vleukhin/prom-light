@@ -3,10 +3,11 @@ package storage
 import (
 	"errors"
 	"fmt"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/vleukhin/prom-light/cmd/server/handlers"
 	"github.com/vleukhin/prom-light/internal"
-	"testing"
 )
 
 type MockStorage struct {

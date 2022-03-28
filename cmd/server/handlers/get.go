@@ -2,9 +2,10 @@ package handlers
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/gorilla/mux"
 	"github.com/vleukhin/prom-light/internal"
-	"net/http"
 )
 
 type GetMetricHandler struct {
