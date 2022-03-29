@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"runtime"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/vleukhin/prom-light/internal/metrics"
@@ -27,10 +28,12 @@ type Collector struct {
 	reportTicker   *time.Ticker
 	client         http.Client
 	cfg            CollectorConfig
+	mutex          *sync.Mutex
 }
 
 func NewCollector(config CollectorConfig) Collector {
 	rand.Seed(time.Now().Unix())
+	var mutex sync.Mutex
 
 	client := http.Client{}
 	client.Timeout = config.ReportTimeout
@@ -42,6 +45,7 @@ func NewCollector(config CollectorConfig) Collector {
 		time.NewTicker(config.ReportInterval),
 		client,
 		config,
+		&mutex,
 	}
 }
 
@@ -62,6 +66,9 @@ func (c *Collector) Stop() {
 }
 
 func (c *Collector) poll() {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
 	fmt.Println("Polling metrics")
 	m := &runtime.MemStats{}
 	runtime.ReadMemStats(m)
@@ -99,6 +106,9 @@ func (c *Collector) poll() {
 }
 
 func (c *Collector) report() {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
 	fmt.Println("Sending metrics")
 	var reportURL string
 	for name, value := range c.gaugeMetrics {

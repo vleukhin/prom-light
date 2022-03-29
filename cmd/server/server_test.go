@@ -240,6 +240,7 @@ func TestGetMetricHandler_ServeHTTP(t *testing.T) {
 
 func TestHomeHandler_ServeHTTP(t *testing.T) {
 	mockStorage := storage.NewMockStorage()
+	mockStorage.SetCounter("foo", 1)
 	testServer := httptest.NewServer(NewRouter(mockStorage))
 	req, err := http.NewRequest(http.MethodGet, testServer.URL, nil)
 	require.NoError(t, err)
