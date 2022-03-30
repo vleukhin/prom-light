@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
+
 	"github.com/vleukhin/prom-light/cmd/server/storage"
 	"github.com/vleukhin/prom-light/internal/metrics"
 )

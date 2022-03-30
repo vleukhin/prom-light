@@ -6,10 +6,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/vleukhin/prom-light/internal/metrics"
-
 	"github.com/stretchr/testify/require"
+
 	"github.com/vleukhin/prom-light/cmd/server/storage"
+	"github.com/vleukhin/prom-light/internal/metrics"
 )
 
 type requestOptions struct {

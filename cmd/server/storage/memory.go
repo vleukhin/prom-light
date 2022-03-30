@@ -7,27 +7,25 @@ import (
 	"github.com/vleukhin/prom-light/internal/metrics"
 )
 
-type MemoryStorage struct {
-	mutex          *sync.Mutex
+type memoryStorage struct {
+	mutex          sync.Mutex
 	gaugeMetrics   map[string]metrics.Gauge
 	counterMetrics map[string]metrics.Counter
 }
 
-func NewMemoryStorage() MemoryStorage {
-	var mutex sync.Mutex
-	return MemoryStorage{
-		mutex:          &mutex,
+func NewMemoryStorage() *memoryStorage {
+	return &memoryStorage{
 		gaugeMetrics:   make(map[string]metrics.Gauge),
 		counterMetrics: make(map[string]metrics.Counter),
 	}
 }
 
-func (m MemoryStorage) SetGauge(metricName string, value metrics.Gauge) {
+func (m *memoryStorage) SetGauge(metricName string, value metrics.Gauge) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	m.gaugeMetrics[metricName] = value
 }
-func (m MemoryStorage) SetCounter(metricName string, value metrics.Counter) {
+func (m *memoryStorage) SetCounter(metricName string, value metrics.Counter) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	oldValue, ok := m.counterMetrics[metricName]
@@ -37,7 +35,7 @@ func (m MemoryStorage) SetCounter(metricName string, value metrics.Counter) {
 	m.counterMetrics[metricName] = oldValue + value
 }
 
-func (m MemoryStorage) GetGauge(name string) (metrics.Gauge, error) {
+func (m *memoryStorage) GetGauge(name string) (metrics.Gauge, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	value, exists := m.gaugeMetrics[name]
@@ -48,7 +46,7 @@ func (m MemoryStorage) GetGauge(name string) (metrics.Gauge, error) {
 	return value, nil
 }
 
-func (m MemoryStorage) GetCounter(name string) (metrics.Counter, error) {
+func (m *memoryStorage) GetCounter(name string) (metrics.Counter, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	value, exists := m.counterMetrics[name]
@@ -59,7 +57,7 @@ func (m MemoryStorage) GetCounter(name string) (metrics.Counter, error) {
 	return value, nil
 }
 
-func (m MemoryStorage) GetAllMetrics() AllMetrics {
+func (m *memoryStorage) GetAllMetrics() AllMetrics {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	result := AllMetrics{
