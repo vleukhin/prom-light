@@ -3,10 +3,17 @@ package metrics
 type Gauge float64
 type Counter int64
 
-type MetricTypeName string
+type Metric struct {
+	Name  string   `json:"id"`              // имя метрики
+	Type  string   `json:"type"`            // параметр, принимающий значение gauge или counter
+	Delta *Counter `json:"delta,omitempty"` // значение метрики в случае передачи counter
+	Value *Gauge   `json:"value,omitempty"` // значение метрики в случае передачи gauge
+}
 
-const GaugeTypeName MetricTypeName = "gauge"
-const CounterTypeName MetricTypeName = "counter"
+type Metrics []Metric
+
+const GaugeTypeName = "gauge"
+const CounterTypeName = "counter"
 
 const (
 	Alloc         = "Alloc"
@@ -40,6 +47,6 @@ const (
 	PollCount     = "PollCount"
 )
 
-func (m MetricTypeName) String() string {
-	return string(m)
+func (m Metric) IsCounter() bool {
+	return m.Type == CounterTypeName
 }
