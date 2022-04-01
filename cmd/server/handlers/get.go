@@ -68,7 +68,7 @@ func (h GetMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h GetMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var reqMetrics, respMetrics metrics.Metrics
+	var m metrics.Metric
 
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
@@ -79,41 +79,34 @@ func (h GetMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	}
 
 	fmt.Println("GET JSON metrics: " + string(body))
-	err = json.Unmarshal(body, &reqMetrics)
+	err = json.Unmarshal(body, &m)
 	if err != nil {
 		fmt.Println("Failed to parse JSON: " + err.Error())
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	for _, m := range reqMetrics {
-		switch m.Type {
-		case metrics.GaugeTypeName:
-			value, err := h.store.GetGauge(m.Name)
-			if err != nil {
-				continue
-			}
-			respMetrics = append(respMetrics, metrics.Metric{
-				Name:  m.Name,
-				Type:  m.Type,
-				Value: &value,
-			})
-
-		case metrics.CounterTypeName:
-			value, err := h.store.GetCounter(m.Name)
-			if err != nil {
-				continue
-			}
-
-			respMetrics = append(respMetrics, metrics.Metric{
-				Name:  m.Name,
-				Type:  m.Type,
-				Delta: &value,
-			})
+	switch m.Type {
+	case metrics.GaugeTypeName:
+		value, err := h.store.GetGauge(m.Name)
+		if err != nil {
+			fmt.Println(err.Error())
+			w.WriteHeader(http.StatusNotFound)
+			return
 		}
+		m.Value = &value
+
+	case metrics.CounterTypeName:
+		value, err := h.store.GetCounter(m.Name)
+		if err != nil {
+			fmt.Println(err.Error())
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		m.Delta = &value
 	}
 
-	respBody, err := json.Marshal(respMetrics)
+	respBody, err := json.Marshal(m)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

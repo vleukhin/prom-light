@@ -370,36 +370,24 @@ func TestGetMetricJSONHandler_ServeHTTP(t *testing.T) {
 		},
 		{
 			name:    "Get counter",
-			payload: []byte(`[{"id":"TestCounter","type":"counter"}]`),
+			payload: []byte(`{"id":"TestCounter","type":"counter"}`),
 			metrics: storedMetrics{
 				counters: map[string]metrics.Counter{"TestCounter": 99},
 			},
 			want: want{
 				code:     200,
-				response: `[{"id":"TestCounter","type":"counter","delta":99}]`,
+				response: `{"id":"TestCounter","type":"counter","delta":99}`,
 			},
 		},
 		{
 			name:    "Get gauge",
-			payload: []byte(`[{"id":"TestGauge","type":"gauge"}]`),
+			payload: []byte(`{"id":"TestGauge","type":"gauge"}`),
 			metrics: storedMetrics{
 				gauges: map[string]metrics.Gauge{"TestGauge": 99.99},
 			},
 			want: want{
 				code:     200,
-				response: `[{"id":"TestGauge","type":"gauge","value":99.99}]`,
-			},
-		},
-		{
-			name:    "Get multiple metrics",
-			payload: []byte(`[{"id":"TestGauge","type":"gauge"},{"id":"TestCounter","type":"counter"}]`),
-			metrics: storedMetrics{
-				gauges:   map[string]metrics.Gauge{"TestGauge": 547.8},
-				counters: map[string]metrics.Counter{"TestCounter": 55},
-			},
-			want: want{
-				code:     200,
-				response: `[{"id":"TestGauge","type":"gauge","value":547.8},{"id":"TestCounter","type":"counter","delta":55}]`,
+				response: `{"id":"TestGauge","type":"gauge","value":99.99}`,
 			},
 		},
 	}
