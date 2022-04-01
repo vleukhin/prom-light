@@ -66,14 +66,19 @@ func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h UpdateMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var mtrcs metrics.Metrics
+
 	defer r.Body.Close()
-	err := json.NewDecoder(r.Body).Decode(&mtrcs)
+	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-		fmt.Println("Failed to parse JSON: " + string(body))
+		fmt.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Println("UPDATE JSON metrics: " + string(body))
+	err = json.Unmarshal(body, &mtrcs)
+	if err != nil {
+		fmt.Println("Failed to parse JSON: " + err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}

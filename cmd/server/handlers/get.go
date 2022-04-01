@@ -69,13 +69,19 @@ func (h GetMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h GetMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var reqMetrics, respMetrics metrics.Metrics
-	err := json.NewDecoder(r.Body).Decode(&reqMetrics)
+
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-		fmt.Println("Failed to parse JSON: " + string(body))
+		fmt.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Println("GET JSON metrics: " + string(body))
+	err = json.Unmarshal(body, &reqMetrics)
+	if err != nil {
+		fmt.Println("Failed to parse JSON: " + err.Error())
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
