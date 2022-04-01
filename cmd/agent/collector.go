@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -110,43 +112,58 @@ func (c *Collector) report() {
 	defer c.mutex.Unlock()
 
 	fmt.Println("Sending metrics")
-	var reportURL string
-	for name, value := range c.gaugeMetrics {
-		reportURL = c.buildMetricURL(metrics.GaugeTypeName.String(), name) + fmt.Sprintf("%f", value)
-		err := c.sendReportRequest(reportURL, name)
-		if err != nil {
-			continue
-		}
+	var mtrcs metrics.Metrics
+
+	for name, v := range c.gaugeMetrics {
+		value := v
+		mtrcs = append(mtrcs, metrics.Metric{
+			Name:  name,
+			Type:  metrics.GaugeTypeName,
+			Value: &value,
+		})
 	}
-	for name, value := range c.counterMetrics {
-		reportURL = c.buildMetricURL(metrics.CounterTypeName.String(), name) + fmt.Sprintf("%d", value)
-		err := c.sendReportRequest(reportURL, name)
-		if err != nil {
-			continue
-		}
-		c.counterMetrics[name] = 0
+	for name, v := range c.counterMetrics {
+		value := v
+		mtrcs = append(mtrcs, metrics.Metric{
+			Name:  name,
+			Type:  metrics.CounterTypeName,
+			Delta: &value,
+		})
 	}
+
+	err := c.sendReportRequest(mtrcs)
+	if err != nil {
+		fmt.Println("Failed to send report request: " + err.Error())
+	} else {
+		fmt.Println("Report succeeded")
+	}
+
+	c.resetCounters()
 }
 
-func (c *Collector) sendReportRequest(reportURL, metricName string) error {
-	resp, err := c.client.Post(reportURL, "text/plain", nil)
+func (c *Collector) sendReportRequest(mtrcs metrics.Metrics) error {
+	data, err := json.Marshal(mtrcs)
 	if err != nil {
-		fmt.Println("Error occurred while reporting " + metricName + " metric:" + err.Error())
+		return err
+	}
+
+	resp, err := c.client.Post(fmt.Sprintf("http://%s:%d/update/", c.cfg.ServerHost, c.cfg.ServerPort), "application/json", bytes.NewBuffer(data))
+	if err != nil {
 		return err
 	}
 	err = resp.Body.Close()
 	if err != nil {
-		fmt.Println("Error while closing response body:" + err.Error())
 		return err
 	}
 	if resp.StatusCode != http.StatusOK {
-		fmt.Println("Bad response while reporting " + metricName + " metric:" + strconv.Itoa(resp.StatusCode))
-		return errors.New("bad response")
+		return errors.New("bad response while reporting: " + strconv.Itoa(resp.StatusCode))
 	}
 
 	return nil
 }
 
-func (c *Collector) buildMetricURL(metricType, name string) string {
-	return fmt.Sprintf("http://%s:%d/update/%s/%s/", c.cfg.ServerHost, c.cfg.ServerPort, metricType, name)
+func (c *Collector) resetCounters() {
+	for name := range c.counterMetrics {
+		c.counterMetrics[name] = 0
+	}
 }

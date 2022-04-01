@@ -323,7 +323,7 @@ func TestUpdateMetricJSONHandler_ServeHTTP(t *testing.T) {
 			testServer := httptest.NewServer(NewRouter(mockStorage))
 			defer testServer.Close()
 
-			req, err := http.NewRequest(http.MethodPost, testServer.URL+"/update", bytes.NewBuffer(tt.payload))
+			req, err := http.NewRequest(http.MethodPost, testServer.URL+"/update/", bytes.NewBuffer(tt.payload))
 			require.NoError(t, err)
 
 			response, err := http.DefaultClient.Do(req)
@@ -417,7 +417,7 @@ func TestGetMetricJSONHandler_ServeHTTP(t *testing.T) {
 				mockStorage.SetCounter(name, value)
 			}
 
-			req, err := http.NewRequest(http.MethodPost, testServer.URL+"/value", bytes.NewBuffer(tt.payload))
+			req, err := http.NewRequest(http.MethodPost, testServer.URL+"/value/", bytes.NewBuffer(tt.payload))
 			require.NoError(t, err)
 
 			response, err := http.DefaultClient.Do(req)
