@@ -2,65 +2,45 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/vleukhin/prom-light/internal"
 	"net/http"
-	"regexp"
 	"strconv"
+
+	"github.com/gorilla/mux"
+
+	"github.com/vleukhin/prom-light/cmd/server/storage"
+	"github.com/vleukhin/prom-light/internal/metrics"
 )
 
 type UpdateMetricHandler struct {
-	storage MetricsStorage
+	store storage.MetricsSetter
 }
 
-type MetricsStorage interface {
-	StoreGauge(metricName string, value internal.Gauge)
-	StoreCounter(metricName string, value internal.Counter)
-}
-
-func NewUpdateMetricHandler(storage MetricsStorage) UpdateMetricHandler {
+func NewUpdateMetricHandler(storage storage.MetricsSetter) UpdateMetricHandler {
 	return UpdateMetricHandler{
-		storage: storage,
+		store: storage,
 	}
 }
 
 func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
+	params := mux.Vars(r)
 
-	myExp := regexp.MustCompile(`^/update/(?P<mType>\w*)/(?P<mName>\w*)/(?P<mValue>[.\w]+)$`)
-	match := myExp.FindStringSubmatch(r.RequestURI)
-
-	if len(match) == 0 {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
-	params := make(map[string]string)
-	for i, name := range myExp.SubexpNames() {
-		if i != 0 && name != "" {
-			params[name] = match[i]
-		}
-	}
-
-	switch internal.MetricTypeName(params["mType"]) {
-	case internal.GaugeTypeName:
-		value, err := strconv.ParseFloat(params["mValue"], 64)
+	switch metrics.MetricTypeName(params["type"]) {
+	case metrics.GaugeTypeName:
+		value, err := strconv.ParseFloat(params["value"], 64)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		fmt.Printf("Received gauge %s with value %f \n", params["mName"], value)
-		h.storage.StoreGauge(params["mName"], internal.Gauge(value))
-	case internal.CounterTypeName:
-		value, err := strconv.ParseInt(params["mValue"], 10, 64)
+		fmt.Printf("Received gauge %s with value %.3f \n", params["name"], value)
+		h.store.SetGauge(params["name"], metrics.Gauge(value))
+	case metrics.CounterTypeName:
+		value, err := strconv.ParseInt(params["value"], 10, 64)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		fmt.Printf("Received counter %s with value %d \n", params["mName"], value)
-		h.storage.StoreCounter(params["mName"], internal.Counter(value))
+		fmt.Printf("Received counter %s with value %d \n", params["name"], value)
+		h.store.SetCounter(params["name"], metrics.Counter(value))
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		return
