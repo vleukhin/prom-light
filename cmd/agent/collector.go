@@ -131,18 +131,21 @@ func (c *Collector) report() {
 		})
 	}
 
-	err := c.sendReportRequest(mtrcs)
-	if err != nil {
-		fmt.Println("Failed to send report request: " + err.Error())
-	} else {
-		fmt.Println("Report succeeded")
-	}
+	for _, m := range mtrcs {
+		err := c.sendReportRequest(m)
+		if err != nil {
+			fmt.Println("Error occurred while reporting " + m.Name + " metric:" + err.Error())
+			continue
+		}
 
-	c.resetCounters()
+		if m.IsCounter() {
+			c.counterMetrics[m.Name] = 0
+		}
+	}
 }
 
-func (c *Collector) sendReportRequest(mtrcs metrics.Metrics) error {
-	data, err := json.Marshal(mtrcs)
+func (c *Collector) sendReportRequest(m metrics.Metric) error {
+	data, err := json.Marshal(m)
 	if err != nil {
 		return err
 	}
@@ -160,10 +163,4 @@ func (c *Collector) sendReportRequest(mtrcs metrics.Metrics) error {
 	}
 
 	return nil
-}
-
-func (c *Collector) resetCounters() {
-	for name := range c.counterMetrics {
-		c.counterMetrics[name] = 0
-	}
 }

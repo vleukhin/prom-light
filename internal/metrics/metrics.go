@@ -46,3 +46,7 @@ const (
 	RandomValue   = "RandomValue"
 	PollCount     = "PollCount"
 )
+
+func (m Metric) IsCounter() bool {
+	return m.Type == CounterTypeName
+}

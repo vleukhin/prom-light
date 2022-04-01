@@ -255,8 +255,8 @@ func TestHomeHandler_ServeHTTP(t *testing.T) {
 
 func TestUpdateMetricJSONHandler_ServeHTTP(t *testing.T) {
 	type want struct {
-		code    int
-		metrics metrics.Metrics
+		code   int
+		metric metrics.Metric
 	}
 
 	var testCounter metrics.Counter = 5
@@ -276,43 +276,26 @@ func TestUpdateMetricJSONHandler_ServeHTTP(t *testing.T) {
 		},
 		{
 			name:    "Single counter",
-			payload: []byte(`[{"id":"TestCounter","type":"counter","delta":5}]`),
+			payload: []byte(`{"id":"TestCounter","type":"counter","delta":5}`),
 			want: want{
 				code: http.StatusOK,
-				metrics: metrics.Metrics{metrics.Metric{
+				metric: metrics.Metric{
 					Name:  "TestCounter",
 					Type:  metrics.CounterTypeName,
 					Delta: &testCounter,
-				}},
+				},
 			},
 		},
 		{
 			name:    "Single gauge",
-			payload: []byte(`[{"id":"TestGauge","type":"gauge","value":5.5}]`),
+			payload: []byte(`{"id":"TestGauge","type":"gauge","value":5.5}`),
 			want: want{
 				code: http.StatusOK,
-				metrics: metrics.Metrics{metrics.Metric{
+				metric: metrics.Metric{
 					Name:  "TestGauge",
 					Type:  metrics.GaugeTypeName,
 					Value: &testGauge,
-				}},
-			},
-		},
-		{
-			name:    "Multiple metrics",
-			payload: []byte(`[{"id":"TestCounter","type":"counter","delta":5},{"id":"TestGauge","type":"gauge","value":5.5}]`),
-			want: want{
-				code: http.StatusOK,
-				metrics: metrics.Metrics{
-					metrics.Metric{
-						Name:  "TestCounter",
-						Type:  metrics.CounterTypeName,
-						Delta: &testCounter,
-					}, metrics.Metric{
-						Name:  "TestGauge",
-						Type:  metrics.GaugeTypeName,
-						Value: &testGauge,
-					}},
+				},
 			},
 		},
 	}
@@ -333,13 +316,11 @@ func TestUpdateMetricJSONHandler_ServeHTTP(t *testing.T) {
 			require.Equal(t, tt.want.code, response.StatusCode)
 
 			if tt.want.code == http.StatusOK {
-				for _, m := range tt.want.metrics {
-					switch m.Type {
-					case metrics.GaugeTypeName:
-						mockStorage.AssertGaugeStoredWithValue(t, m.Name, *m.Value)
-					case metrics.CounterTypeName:
-						mockStorage.AssertCounterStoredWithValue(t, m.Name, *m.Delta)
-					}
+				switch tt.want.metric.Type {
+				case metrics.GaugeTypeName:
+					mockStorage.AssertGaugeStoredWithValue(t, tt.want.metric.Name, *tt.want.metric.Value)
+				case metrics.CounterTypeName:
+					mockStorage.AssertCounterStoredWithValue(t, tt.want.metric.Name, *tt.want.metric.Delta)
 				}
 			}
 		})

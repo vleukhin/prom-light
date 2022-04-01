@@ -65,7 +65,7 @@ func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h UpdateMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var mtrcs metrics.Metrics
+	var m metrics.Metric
 
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
@@ -76,24 +76,22 @@ func (h UpdateMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	}
 
 	fmt.Println("UPDATE JSON metrics: " + string(body))
-	err = json.Unmarshal(body, &mtrcs)
+	err = json.Unmarshal(body, &m)
 	if err != nil {
 		fmt.Println("Failed to parse JSON: " + err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	for _, m := range mtrcs {
-		switch m.Type {
-		case metrics.GaugeTypeName:
-			if m.Value != nil {
-				h.store.SetGauge(m.Name, *m.Value)
-			}
+	switch m.Type {
+	case metrics.GaugeTypeName:
+		if m.Value != nil {
+			h.store.SetGauge(m.Name, *m.Value)
+		}
 
-		case metrics.CounterTypeName:
-			if m.Delta != nil {
-				h.store.SetCounter(m.Name, *m.Delta)
-			}
+	case metrics.CounterTypeName:
+		if m.Delta != nil {
+			h.store.SetCounter(m.Name, *m.Delta)
 		}
 	}
 }
