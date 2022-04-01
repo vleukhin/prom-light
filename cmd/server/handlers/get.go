@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -14,8 +15,18 @@ type GetMetricHandler struct {
 	store storage.MetricsGetter
 }
 
+type GetMetricJSONHandler struct {
+	store storage.MetricsGetter
+}
+
 func NewGetMetricHandler(storage storage.MetricsGetter) GetMetricHandler {
 	return GetMetricHandler{
+		store: storage,
+	}
+}
+
+func NewGetMetricJSONHandler(storage storage.MetricsGetter) GetMetricJSONHandler {
+	return GetMetricJSONHandler{
 		store: storage,
 	}
 }
@@ -52,5 +63,53 @@ func (h GetMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		return
+	}
+}
+
+func (h GetMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var reqMetrics, respMetrics metrics.Metrics
+	err := json.NewDecoder(r.Body).Decode(&reqMetrics)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	for _, m := range reqMetrics {
+		switch m.Type {
+		case metrics.GaugeTypeName:
+			value, err := h.store.GetGauge(m.Name)
+			if err != nil {
+				continue
+			}
+			respMetrics = append(respMetrics, metrics.Metric{
+				Name:  m.Name,
+				Type:  m.Type,
+				Value: &value,
+			})
+
+		case metrics.CounterTypeName:
+			value, err := h.store.GetCounter(m.Name)
+			if err != nil {
+				continue
+			}
+
+			respMetrics = append(respMetrics, metrics.Metric{
+				Name:  m.Name,
+				Type:  m.Type,
+				Delta: &value,
+			})
+		}
+	}
+
+	respBody, err := json.Marshal(respMetrics)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	_, err = w.Write(respBody)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 	}
 }

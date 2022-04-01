@@ -35,11 +35,13 @@ func NewRouter(str storage.MetricsStorage) *mux.Router {
 	updateHandler := handlers.NewUpdateMetricHandler(str)
 	updateJSONHandler := handlers.NewUpdateMetricJSONHandler(str)
 	getHandler := handlers.NewGetMetricHandler(str)
+	getJSONHandler := handlers.NewGetMetricJSONHandler(str)
 
 	r := mux.NewRouter()
 	r.Handle("/", homeHandler).Methods(http.MethodGet)
 	r.Handle("/update", updateJSONHandler).Methods(http.MethodPost)
 	r.Handle("/update/{type}/{name}/{value}", updateHandler).Methods(http.MethodPost)
+	r.Handle("/value", getJSONHandler).Methods(http.MethodPost)
 	r.Handle("/value/{type}/{name}", getHandler).Methods(http.MethodGet)
 
 	return r

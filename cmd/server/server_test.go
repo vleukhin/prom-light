@@ -345,3 +345,93 @@ func TestUpdateMetricJSONHandler_ServeHTTP(t *testing.T) {
 		})
 	}
 }
+
+func TestGetMetricJSONHandler_ServeHTTP(t *testing.T) {
+	type want struct {
+		code     int
+		response string
+	}
+	type storedMetrics struct {
+		gauges   map[string]metrics.Gauge
+		counters map[string]metrics.Counter
+	}
+	tests := []struct {
+		name    string
+		metrics storedMetrics
+		payload []byte
+		want    want
+	}{
+		{
+			name:    "Bad request",
+			payload: []byte("test"),
+			want: want{
+				code: 400,
+			},
+		},
+		{
+			name:    "Get counter",
+			payload: []byte(`[{"id":"TestCounter","type":"counter"}]`),
+			metrics: storedMetrics{
+				counters: map[string]metrics.Counter{"TestCounter": 99},
+			},
+			want: want{
+				code:     200,
+				response: `[{"id":"TestCounter","type":"counter","delta":99}]`,
+			},
+		},
+		{
+			name:    "Get gauge",
+			payload: []byte(`[{"id":"TestGauge","type":"gauge"}]`),
+			metrics: storedMetrics{
+				gauges: map[string]metrics.Gauge{"TestGauge": 99.99},
+			},
+			want: want{
+				code:     200,
+				response: `[{"id":"TestGauge","type":"gauge","value":99.99}]`,
+			},
+		},
+		{
+			name:    "Get multiple metrics",
+			payload: []byte(`[{"id":"TestGauge","type":"gauge"},{"id":"TestCounter","type":"counter"}]`),
+			metrics: storedMetrics{
+				gauges:   map[string]metrics.Gauge{"TestGauge": 547.8},
+				counters: map[string]metrics.Counter{"TestCounter": 55},
+			},
+			want: want{
+				code:     200,
+				response: `[{"id":"TestGauge","type":"gauge","value":547.8},{"id":"TestCounter","type":"counter","delta":55}]`,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockStorage := storage.NewMockStorage()
+			testServer := httptest.NewServer(NewRouter(mockStorage))
+			defer testServer.Close()
+
+			for name, value := range tt.metrics.gauges {
+				mockStorage.SetGauge(name, value)
+			}
+			for name, value := range tt.metrics.counters {
+				mockStorage.SetCounter(name, value)
+			}
+
+			req, err := http.NewRequest(http.MethodPost, testServer.URL+"/value", bytes.NewBuffer(tt.payload))
+			require.NoError(t, err)
+
+			response, err := http.DefaultClient.Do(req)
+			require.NoError(t, err)
+
+			defer response.Body.Close()
+			require.Equal(t, tt.want.code, response.StatusCode)
+
+			if tt.want.code == http.StatusOK {
+				respBody, err := ioutil.ReadAll(response.Body)
+				require.NoError(t, err)
+
+				require.Equal(t, tt.want.response, string(respBody))
+			}
+		})
+	}
+}
