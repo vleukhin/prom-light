@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 
@@ -65,8 +66,14 @@ func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h UpdateMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var mtrcs metrics.Metrics
+	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&mtrcs)
 	if err != nil {
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		fmt.Println("Failed to parse JSON: " + string(body))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}

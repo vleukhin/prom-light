@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -70,6 +71,11 @@ func (h GetMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	var reqMetrics, respMetrics metrics.Metrics
 	err := json.NewDecoder(r.Body).Decode(&reqMetrics)
 	if err != nil {
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		fmt.Println("Failed to parse JSON: " + string(body))
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}

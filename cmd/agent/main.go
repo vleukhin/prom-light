@@ -11,7 +11,7 @@ import (
 func main() {
 	cfg := CollectorConfig{
 		PollInterval:   1 * time.Second,
-		ReportInterval: 5 * time.Second,
+		ReportInterval: 2 * time.Second,
 		ReportTimeout:  1 * time.Second,
 		ServerHost:     "127.0.0.1",
 		ServerPort:     8080,
