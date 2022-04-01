@@ -24,7 +24,7 @@ func (h GetMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
 	w.Header().Add("Content-type", "text/html")
-	switch metrics.MetricTypeName(params["type"]) {
+	switch params["type"] {
 	case metrics.GaugeTypeName:
 		value, err := h.store.GetGauge(params["name"])
 		if err != nil {

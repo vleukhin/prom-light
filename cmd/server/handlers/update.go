@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -15,8 +16,18 @@ type UpdateMetricHandler struct {
 	store storage.MetricsSetter
 }
 
+type UpdateMetricJSONHandler struct {
+	store storage.MetricsSetter
+}
+
 func NewUpdateMetricHandler(storage storage.MetricsSetter) UpdateMetricHandler {
 	return UpdateMetricHandler{
+		store: storage,
+	}
+}
+
+func NewUpdateMetricJSONHandler(storage storage.MetricsSetter) UpdateMetricJSONHandler {
+	return UpdateMetricJSONHandler{
 		store: storage,
 	}
 }
@@ -24,7 +35,7 @@ func NewUpdateMetricHandler(storage storage.MetricsSetter) UpdateMetricHandler {
 func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
-	switch metrics.MetricTypeName(params["type"]) {
+	switch params["type"] {
 	case metrics.GaugeTypeName:
 		value, err := strconv.ParseFloat(params["value"], 64)
 		if err != nil {
@@ -49,5 +60,28 @@ func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_, err := w.Write([]byte("Updated"))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
+func (h UpdateMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var mtrcs metrics.Metrics
+	err := json.NewDecoder(r.Body).Decode(&mtrcs)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	for _, m := range mtrcs {
+		switch m.Type {
+		case metrics.GaugeTypeName:
+			if m.Value != nil {
+				h.store.SetGauge(m.Name, *m.Value)
+			}
+
+		case metrics.CounterTypeName:
+			if m.Delta != nil {
+				h.store.SetCounter(m.Name, *m.Delta)
+			}
+		}
 	}
 }
