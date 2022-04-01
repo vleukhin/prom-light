@@ -70,7 +70,7 @@ func (h GetMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	var reqMetrics, respMetrics metrics.Metrics
 	err := json.NewDecoder(r.Body).Decode(&reqMetrics)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 

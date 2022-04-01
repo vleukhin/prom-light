@@ -365,7 +365,7 @@ func TestGetMetricJSONHandler_ServeHTTP(t *testing.T) {
 			name:    "Bad request",
 			payload: []byte("test"),
 			want: want{
-				code: 400,
+				code: 404,
 			},
 		},
 		{
