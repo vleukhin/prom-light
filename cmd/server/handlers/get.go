@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -73,15 +74,15 @@ func (h GetMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	fmt.Println("GET JSON metrics: " + string(body))
+	log.Println("GET JSON metrics: " + string(body))
 	err = json.Unmarshal(body, &m)
 	if err != nil {
-		fmt.Println("Failed to parse JSON: " + err.Error())
+		log.Println("Failed to parse JSON: " + err.Error())
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -90,7 +91,7 @@ func (h GetMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	case metrics.GaugeTypeName:
 		value, err := h.store.GetGauge(m.Name)
 		if err != nil {
-			fmt.Println(err.Error())
+			log.Println(err.Error())
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
@@ -99,7 +100,7 @@ func (h GetMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	case metrics.CounterTypeName:
 		value, err := h.store.GetCounter(m.Name)
 		if err != nil {
-			fmt.Println(err.Error())
+			log.Println(err.Error())
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}

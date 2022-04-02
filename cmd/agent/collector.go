@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"runtime"
@@ -70,7 +71,7 @@ func (c *Collector) poll() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	fmt.Println("Polling metrics")
+	log.Println("Polling metrics")
 	m := &runtime.MemStats{}
 	runtime.ReadMemStats(m)
 
@@ -110,7 +111,7 @@ func (c *Collector) report() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	fmt.Println("Sending metrics")
+	log.Println("Sending metrics")
 	var mtrcs metrics.Metrics
 
 	for name, v := range c.gaugeMetrics {
@@ -133,7 +134,7 @@ func (c *Collector) report() {
 	for _, m := range mtrcs {
 		err := c.sendReportRequest(m)
 		if err != nil {
-			fmt.Println("Error occurred while reporting " + m.Name + " metric:" + err.Error())
+			log.Println("Error occurred while reporting " + m.Name + " metric:" + err.Error())
 			continue
 		}
 

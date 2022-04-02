@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -29,10 +28,10 @@ func main() {
 
 	select {
 	case <-sigChan:
-		fmt.Println("Terminating...")
+		log.Println("Terminating...")
 		os.Exit(0)
 	case err := <-errChan:
-		fmt.Println("Server error: " + err.Error())
+		log.Println("Server error: " + err.Error())
 		os.Exit(1)
 	}
 }

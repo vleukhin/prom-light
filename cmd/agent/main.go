@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -27,7 +26,7 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	<-sigChan
-	fmt.Println("Terminating...")
+	log.Println("Terminating...")
 	collector.Stop()
 	os.Exit(0)
 }
