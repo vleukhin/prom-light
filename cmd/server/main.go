@@ -1,16 +1,20 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/caarlos0/env/v6"
 )
 
 func main() {
-	cfg := ServerConfig{
-		Addr: "0.0.0.0",
-		Port: 8080,
+	var cfg ServerConfig
+
+	err := env.Parse(&cfg)
+	if err != nil {
+		log.Fatal(err.Error())
 	}
 
 	s := NewMetricsServer(cfg)
@@ -24,10 +28,10 @@ func main() {
 
 	select {
 	case <-sigChan:
-		fmt.Println("Terminating...")
+		log.Println("Terminating...")
 		os.Exit(0)
 	case err := <-errChan:
-		fmt.Println("Server error: " + err.Error())
+		log.Println("Server error: " + err.Error())
 		os.Exit(1)
 	}
 }

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -11,8 +11,7 @@ import (
 )
 
 type ServerConfig struct {
-	Addr string
-	Port uint16
+	Addr string `env:"ADDRESS" envDefault:"localhost:8080"`
 }
 
 type MetricsServer struct {
@@ -24,10 +23,8 @@ func NewMetricsServer(cfg ServerConfig) MetricsServer {
 }
 
 func (s MetricsServer) Run(err chan<- error) {
-	addr := fmt.Sprintf("%s:%d", s.cfg.Addr, s.cfg.Port)
-
-	fmt.Println("Metrics server listen at: " + addr)
-	err <- http.ListenAndServe(addr, NewRouter(storage.NewMemoryStorage()))
+	log.Println("Metrics server listen at: " + s.cfg.Addr)
+	err <- http.ListenAndServe(s.cfg.Addr, NewRouter(storage.NewMemoryStorage()))
 }
 
 func NewRouter(str storage.MetricsStorage) *mux.Router {

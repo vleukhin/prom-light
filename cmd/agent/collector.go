@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"runtime"
@@ -16,11 +17,10 @@ import (
 )
 
 type CollectorConfig struct {
-	PollInterval   time.Duration
-	ReportInterval time.Duration
-	ReportTimeout  time.Duration
-	ServerHost     string
-	ServerPort     uint16
+	PollInterval   time.Duration `env:"POLL_INTERVAL" envDefault:"2s"`
+	ReportInterval time.Duration `env:"REPORT_INTERVAL " envDefault:"10s"`
+	ReportTimeout  time.Duration `env:"REPORT_TIMEOUT" envDefault:"1s"`
+	ServerAddr     string        `env:"ADDRESS" envDefault:"localhost:8080"`
 }
 
 type Collector struct {
@@ -71,7 +71,7 @@ func (c *Collector) poll() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	fmt.Println("Polling metrics")
+	log.Println("Polling metrics")
 	m := &runtime.MemStats{}
 	runtime.ReadMemStats(m)
 
@@ -111,7 +111,7 @@ func (c *Collector) report() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	fmt.Println("Sending metrics")
+	log.Println("Sending metrics")
 	var mtrcs metrics.Metrics
 
 	for name, v := range c.gaugeMetrics {
@@ -134,7 +134,7 @@ func (c *Collector) report() {
 	for _, m := range mtrcs {
 		err := c.sendReportRequest(m)
 		if err != nil {
-			fmt.Println("Error occurred while reporting " + m.Name + " metric:" + err.Error())
+			log.Println("Error occurred while reporting " + m.Name + " metric:" + err.Error())
 			continue
 		}
 
@@ -150,7 +150,7 @@ func (c *Collector) sendReportRequest(m metrics.Metric) error {
 		return err
 	}
 
-	resp, err := c.client.Post(fmt.Sprintf("http://%s:%d/update/", c.cfg.ServerHost, c.cfg.ServerPort), "application/json", bytes.NewBuffer(data))
+	resp, err := c.client.Post(fmt.Sprintf("http://%s/update/", c.cfg.ServerAddr), "application/json", bytes.NewBuffer(data))
 	if err != nil {
 		return err
 	}

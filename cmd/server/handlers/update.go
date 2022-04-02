@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -43,7 +43,7 @@ func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		fmt.Printf("Received gauge %s with value %.3f \n", params["name"], value)
+		log.Printf("Received gauge %s with value %.3f \n", params["name"], value)
 		h.store.SetGauge(params["name"], metrics.Gauge(value))
 	case metrics.CounterTypeName:
 		value, err := strconv.ParseInt(params["value"], 10, 64)
@@ -51,7 +51,7 @@ func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		fmt.Printf("Received counter %s with value %d \n", params["name"], value)
+		log.Printf("Received counter %s with value %d \n", params["name"], value)
 		h.store.SetCounter(params["name"], metrics.Counter(value))
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
@@ -70,15 +70,15 @@ func (h UpdateMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	fmt.Println("UPDATE JSON metrics: " + string(body))
+	log.Println("UPDATE JSON metrics: " + string(body))
 	err = json.Unmarshal(body, &m)
 	if err != nil {
-		fmt.Println("Failed to parse JSON: " + err.Error())
+		log.Println("Failed to parse JSON: " + err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
