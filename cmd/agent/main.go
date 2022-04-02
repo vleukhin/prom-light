@@ -2,20 +2,22 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
+
+	"github.com/caarlos0/env/v6"
 )
 
 func main() {
-	cfg := CollectorConfig{
-		PollInterval:   1 * time.Second,
-		ReportInterval: 2 * time.Second,
-		ReportTimeout:  1 * time.Second,
-		ServerHost:     "127.0.0.1",
-		ServerPort:     8080,
+	var cfg CollectorConfig
+
+	err := env.Parse(&cfg)
+	if err != nil {
+		log.Fatal(err)
 	}
+
 	collector := NewCollector(cfg)
 
 	go collector.Start()

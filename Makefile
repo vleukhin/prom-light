@@ -2,6 +2,7 @@ inc1 := ^TestIteration1$
 inc2 := ^TestIteration2$
 inc3 := ^TestIteration3$
 inc4 := ^TestIteration4$
+inc4 := ^TestIteration5$
 
 build: build-agent build-server
 
@@ -20,3 +21,5 @@ tests-inc-3:
 	./devopstest -test.v -test.run=$(inc3) -source-path=. -binary-path=./cmd/server/server -agent-binary-path=./cmd/agent/agent
 tests-inc-4:
 	./devopstest -test.v -test.run=$(inc4) -source-path=. -binary-path=./cmd/server/server -agent-binary-path=./cmd/agent/agent
+tests-inc-5:
+	./devopstest -test.v -test.run=$(inc4) -source-path=. -binary-path=./cmd/server/server -agent-binary-path=./cmd/agent/agent -server-port=4588

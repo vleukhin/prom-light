@@ -2,15 +2,20 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/caarlos0/env/v6"
 )
 
 func main() {
-	cfg := ServerConfig{
-		Addr: "0.0.0.0",
-		Port: 8080,
+	var cfg ServerConfig
+
+	err := env.Parse(&cfg)
+	if err != nil {
+		log.Fatal(err.Error())
 	}
 
 	s := NewMetricsServer(cfg)
