@@ -123,10 +123,16 @@ func (s *fileStorage) ShutDown() {
 
 func (s *fileStorage) SetGauge(metricName string, value metrics.Gauge) {
 	s.memStorage.SetGauge(metricName, value)
+	if s.syncMode {
+		s.StoreData()
+	}
 }
 
 func (s *fileStorage) SetCounter(metricName string, value metrics.Counter) {
 	s.memStorage.SetCounter(metricName, value)
+	if s.syncMode {
+		s.StoreData()
+	}
 }
 
 func (s *fileStorage) GetGauge(name string) (metrics.Gauge, error) {
