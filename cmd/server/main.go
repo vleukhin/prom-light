@@ -17,7 +17,11 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	s := NewMetricsServer(cfg)
+	s, err := NewMetricsServer(cfg)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
 	errChan := make(chan error)
 	sigChan := make(chan os.Signal, 1)
 
@@ -29,6 +33,7 @@ func main() {
 	select {
 	case <-sigChan:
 		log.Println("Terminating...")
+		s.Stop()
 		os.Exit(0)
 	case err := <-errChan:
 		log.Println("Server error: " + err.Error())

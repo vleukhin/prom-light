@@ -5,13 +5,14 @@ import (
 )
 
 type AllMetrics struct {
-	GaugeMetrics   map[string]metrics.Gauge
-	CounterMetrics map[string]metrics.Counter
+	GaugeMetrics   map[string]metrics.Gauge   `json:"gauge_metrics"`
+	CounterMetrics map[string]metrics.Counter `json:"counter_metrics"`
 }
 
 type MetricsStorage interface {
 	MetricsGetter
 	MetricsSetter
+	ShutDown()
 }
 
 type MetricsGetter interface {

@@ -74,3 +74,7 @@ func (m *memoryStorage) GetAllMetrics() AllMetrics {
 
 	return result
 }
+
+func (m *memoryStorage) ShutDown() {
+	// nothing to do here
+}
