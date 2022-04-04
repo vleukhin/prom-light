@@ -13,7 +13,7 @@ build-agent:
 build-server:
 	go build  -o ./cmd/server/server ./cmd/server && chmod +x ./cmd/server/server
 
-tests: build tests-inc-1 tests-inc-2 tests-inc-3 tests-inc-4
+tests: build tests-inc-1 tests-inc-2 tests-inc-3 tests-inc-4 tests-inc-5 tests-inc-6 tests-inc-7
 
 tests-inc-1:
 	./devopstest -test.v -test.run=$(inc1) -source-path=. -binary-path=./cmd/server/server -agent-binary-path=./cmd/agent/agent
