@@ -5,12 +5,27 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/caarlos0/env/v6"
+
+	"github.com/spf13/pflag"
 )
 
 func main() {
 	var cfg ServerConfig
+
+	addr := pflag.StringP("addr", "a", "localhost:8080", "Server address")
+	restore := pflag.BoolP("restore", "r", true, "Restore data on start up")
+	storeInterval := pflag.DurationP("store-interval", "i", 300*time.Second, "Store interval. 0 enables sync mode")
+	storeFile := pflag.StringP("file", "f", "/tmp/devops-metrics-db.json", "Path for file storage. Empty value disables file storage")
+
+	pflag.Parse()
+
+	cfg.Addr = *addr
+	cfg.Restore = *restore
+	cfg.StoreInterval = *storeInterval
+	cfg.StoreFile = *storeFile
 
 	err := env.Parse(&cfg)
 	if err != nil {
