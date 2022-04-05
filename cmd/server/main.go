@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/caarlos0/env/v6"
-
 	"github.com/spf13/pflag"
 )
 
