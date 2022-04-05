@@ -25,7 +25,7 @@ func NewHomeHandler(storage storage.MetricsGetter) HomeHandler {
 func (h HomeHandler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	tpl, err := template.ParseFS(templates, "templates/home.gohtml")
 	if err != nil {
-		fmt.Println("Failed to parse template: " + err.Error())
+		fmt.Println("Template not found: " + err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
