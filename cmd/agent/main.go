@@ -1,21 +1,34 @@
 package main
 
 import (
-	"fmt"
+	"github.com/caarlos0/env/v6"
+	"github.com/spf13/pflag"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 )
 
 func main() {
-	cfg := CollectorConfig{
-		PollInterval:   2 * time.Second,
-		ReportInterval: 10 * time.Second,
-		ReportTimeout:  1 * time.Second,
-		ServerHost:     "127.0.0.1",
-		ServerPort:     8080,
+	var cfg CollectorConfig
+
+	err := env.Parse(&cfg)
+	if err != nil {
+		log.Fatal(err)
 	}
+
+	serverAddr := pflag.StringP("addr", "a", cfg.ServerAddr, "Server address")
+	pollInterval := pflag.DurationP("poll-interval", "p", cfg.PollInterval, "Poll interval")
+	reportInterval := pflag.DurationP("report-interval", "r", cfg.ReportInterval, "Report interval")
+	reportTimeout := pflag.DurationP("report-timeout", "t", cfg.ReportTimeout, "Report timeout")
+
+	pflag.Parse()
+
+	cfg.ServerAddr = *serverAddr
+	cfg.PollInterval = *pollInterval
+	cfg.ReportInterval = *reportInterval
+	cfg.ReportTimeout = *reportTimeout
+
 	collector := NewCollector(cfg)
 
 	go collector.Start()
@@ -25,7 +38,7 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	<-sigChan
-	fmt.Println("Terminating...")
+	log.Println("Terminating...")
 	collector.Stop()
 	os.Exit(0)
 }
