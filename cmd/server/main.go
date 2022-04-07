@@ -40,6 +40,7 @@ func main() {
 	sigChan := make(chan os.Signal, 1)
 
 	go s.Run(errChan)
+	defer s.Stop()
 
 	signal.Ignore(syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
@@ -47,7 +48,6 @@ func main() {
 	select {
 	case <-sigChan:
 		log.Println("Terminating...")
-		s.Stop()
 		os.Exit(0)
 	case err := <-errChan:
 		log.Println("Server error: " + err.Error())
