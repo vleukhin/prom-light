@@ -25,7 +25,7 @@ func (m *memoryStorage) SetGauge(metricName string, value metrics.Gauge) {
 	defer m.mutex.Unlock()
 	m.gaugeMetrics[metricName] = value
 }
-func (m *memoryStorage) SetCounter(metricName string, value metrics.Counter) {
+func (m *memoryStorage) IncCounter(metricName string, value metrics.Counter) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	oldValue, ok := m.counterMetrics[metricName]
@@ -57,19 +57,31 @@ func (m *memoryStorage) GetCounter(name string) (metrics.Counter, error) {
 	return value, nil
 }
 
-func (m *memoryStorage) GetAllMetrics() AllMetrics {
+func (m *memoryStorage) GetAllMetrics(resetCounters bool) []metrics.Metric {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	result := AllMetrics{
-		make(map[string]metrics.Gauge),
-		make(map[string]metrics.Counter),
-	}
-
+	result := make([]metrics.Metric, len(m.gaugeMetrics)+len(m.counterMetrics))
+	var i int
 	for k, v := range m.gaugeMetrics {
-		result.GaugeMetrics[k] = v
+		value := v
+		result[i] = metrics.Metric{
+			Name:  k,
+			Type:  metrics.GaugeTypeName,
+			Value: &value,
+		}
+		i++
 	}
 	for k, v := range m.counterMetrics {
-		result.CounterMetrics[k] = v
+		value := v
+		result[i] = metrics.Metric{
+			Name:  k,
+			Type:  metrics.CounterTypeName,
+			Delta: &value,
+		}
+		if resetCounters {
+			m.counterMetrics[k] = 0
+		}
+		i++
 	}
 
 	return result

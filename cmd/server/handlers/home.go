@@ -6,6 +6,8 @@ import (
 	"html/template"
 	"net/http"
 
+	"github.com/vleukhin/prom-light/internal/metrics"
+
 	"github.com/vleukhin/prom-light/cmd/server/storage"
 )
 
@@ -31,8 +33,11 @@ func (h HomeHandler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	}
 
 	w.Header().Add("Content-type", "text/html")
+	viewData := struct {
+		Metrics []metrics.Metric
+	}{Metrics: h.store.GetAllMetrics(false)}
 
-	if err := tpl.Execute(w, h.store.GetAllMetrics()); err != nil {
+	if err := tpl.Execute(w, viewData); err != nil {
 		fmt.Println("Failed to execute template: " + err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

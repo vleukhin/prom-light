@@ -52,7 +52,7 @@ func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		log.Printf("Received counter %s with value %d \n", params["name"], value)
-		h.store.SetCounter(params["name"], metrics.Counter(value))
+		h.store.IncCounter(params["name"], metrics.Counter(value))
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		return
@@ -91,7 +91,7 @@ func (h UpdateMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 
 	case metrics.CounterTypeName:
 		if m.Delta != nil {
-			h.store.SetCounter(m.Name, *m.Delta)
+			h.store.IncCounter(m.Name, *m.Delta)
 		}
 	}
 }

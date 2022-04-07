@@ -1,5 +1,7 @@
 package metrics
 
+import "fmt"
+
 type Gauge float64
 type Counter int64
 
@@ -49,4 +51,18 @@ const (
 
 func (m Metric) IsCounter() bool {
 	return m.Type == CounterTypeName
+}
+
+func (m Metric) String() string {
+	var str string
+	switch m.Type {
+	case GaugeTypeName:
+		str = fmt.Sprintf("%.3f", *m.Value)
+	case CounterTypeName:
+		str = fmt.Sprintf("%d", *m.Delta)
+	default:
+		str = "unknown"
+	}
+
+	return str
 }

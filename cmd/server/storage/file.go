@@ -77,7 +77,7 @@ func (s *fileStorage) StoreData() {
 		return
 	}
 
-	err = json.NewEncoder(f).Encode(s.memStorage.GetAllMetrics())
+	err = json.NewEncoder(f).Encode(s.memStorage.GetAllMetrics(false))
 	if err != nil {
 		log.Println("Failed to store data to file: " + err.Error())
 	} else {
@@ -88,7 +88,7 @@ func (s *fileStorage) StoreData() {
 func (s *fileStorage) RestoreData() error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	var data AllMetrics
+	var data []metrics.Metric
 
 	f, err := s.openFile()
 	if err != nil {
@@ -100,12 +100,12 @@ func (s *fileStorage) RestoreData() error {
 		return err
 	}
 
-	for name, value := range data.GaugeMetrics {
-		s.memStorage.SetGauge(name, value)
-	}
-
-	for name, value := range data.CounterMetrics {
-		s.memStorage.SetCounter(name, value)
+	for _, m := range data {
+		if m.IsCounter() {
+			s.memStorage.IncCounter(m.Name, *m.Delta)
+		} else {
+			s.memStorage.SetGauge(m.Name, *m.Value)
+		}
 	}
 
 	log.Println("Data restored from file successfully")
@@ -128,8 +128,8 @@ func (s *fileStorage) SetGauge(metricName string, value metrics.Gauge) {
 	}
 }
 
-func (s *fileStorage) SetCounter(metricName string, value metrics.Counter) {
-	s.memStorage.SetCounter(metricName, value)
+func (s *fileStorage) IncCounter(metricName string, value metrics.Counter) {
+	s.memStorage.IncCounter(metricName, value)
 	if s.syncMode {
 		s.StoreData()
 	}
@@ -143,6 +143,6 @@ func (s *fileStorage) GetCounter(name string) (metrics.Counter, error) {
 	return s.memStorage.GetCounter(name)
 }
 
-func (s *fileStorage) GetAllMetrics() AllMetrics {
-	return s.memStorage.GetAllMetrics()
+func (s *fileStorage) GetAllMetrics(resetCounters bool) []metrics.Metric {
+	return s.memStorage.GetAllMetrics(resetCounters)
 }

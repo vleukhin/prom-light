@@ -18,18 +18,11 @@
             </tr>
             </thead>
             <tbody>
-            {{- range $name, $value := .GaugeMetrics }}
+            {{- range $k, $m := .Metrics }}
                 <tr>
-                    <td>{{ $name }}</td>
-                    <td>gauge</td>
-                    <td>{{ $value | printf "%.3f" }}</td>
-                </tr>
-            {{- end }}
-            {{- range $name, $value := .CounterMetrics }}
-                <tr>
-                    <td>{{ $name  }}</td>
-                    <td>counter</td>
-                    <td>{{ $value | printf "%d" }}</td>
+                    <td>{{ $m.Name }}</td>
+                    <td>{{ $m.Type }}</td>
+                    <td>{{ $m }}</td>
                 </tr>
             {{- end }}
             </tbody>

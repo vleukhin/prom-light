@@ -217,7 +217,7 @@ func TestGetMetricHandler_ServeHTTP(t *testing.T) {
 				mockStorage.SetGauge(name, value)
 			}
 			for name, value := range tt.metrics.counters {
-				mockStorage.SetCounter(name, value)
+				mockStorage.IncCounter(name, value)
 			}
 
 			req, err := http.NewRequest(tt.request.method, testServer.URL+tt.request.URI, nil)
@@ -241,7 +241,7 @@ func TestGetMetricHandler_ServeHTTP(t *testing.T) {
 
 func TestHomeHandler_ServeHTTP(t *testing.T) {
 	mockStorage := storage.NewMockStorage()
-	mockStorage.SetCounter("foo", 1)
+	mockStorage.IncCounter("foo", 1)
 	testServer := httptest.NewServer(NewRouter(mockStorage))
 	req, err := http.NewRequest(http.MethodGet, testServer.URL, nil)
 	require.NoError(t, err)
@@ -383,7 +383,7 @@ func TestGetMetricJSONHandler_ServeHTTP(t *testing.T) {
 				mockStorage.SetGauge(name, value)
 			}
 			for name, value := range tt.metrics.counters {
-				mockStorage.SetCounter(name, value)
+				mockStorage.IncCounter(name, value)
 			}
 
 			req, err := http.NewRequest(http.MethodPost, testServer.URL+"/value/", bytes.NewBuffer(tt.payload))
