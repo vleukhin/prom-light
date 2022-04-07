@@ -1,8 +1,6 @@
 package main
 
 import (
-	"github.com/caarlos0/env/v6"
-	"github.com/spf13/pflag"
 	"log"
 	"os"
 	"os/signal"
@@ -10,25 +8,10 @@ import (
 )
 
 func main() {
-	var cfg CollectorConfig
-
-	err := env.Parse(&cfg)
-	if err != nil {
-		log.Fatal(err)
+	cfg := &CollectorConfig{}
+	if err := cfg.Init(); err != nil {
+		log.Fatal(err.Error())
 	}
-
-	serverAddr := pflag.StringP("addr", "a", cfg.ServerAddr, "Server address")
-	pollInterval := pflag.DurationP("poll-interval", "p", cfg.PollInterval, "Poll interval")
-	reportInterval := pflag.DurationP("report-interval", "r", cfg.ReportInterval, "Report interval")
-	reportTimeout := pflag.DurationP("report-timeout", "t", cfg.ReportTimeout, "Report timeout")
-
-	pflag.Parse()
-
-	cfg.ServerAddr = *serverAddr
-	cfg.PollInterval = *pollInterval
-	cfg.ReportInterval = *reportInterval
-	cfg.ReportTimeout = *reportTimeout
-
 	collector := NewCollector(cfg)
 
 	go collector.Start()

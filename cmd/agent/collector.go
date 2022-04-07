@@ -16,22 +16,15 @@ import (
 	"github.com/vleukhin/prom-light/internal/metrics"
 )
 
-type CollectorConfig struct {
-	PollInterval   time.Duration `env:"POLL_INTERVAL"   envDefault:"2s"`
-	ReportInterval time.Duration `env:"REPORT_INTERVAL" envDefault:"10s"`
-	ReportTimeout  time.Duration `env:"REPORT_TIMEOUT"  envDefault:"1s"`
-	ServerAddr     string        `env:"ADDRESS"         envDefault:"localhost:8080"`
-}
-
 type Collector struct {
 	storage      storage.MetricsStorage
 	pollTicker   *time.Ticker
 	reportTicker *time.Ticker
 	client       http.Client
-	cfg          CollectorConfig
+	cfg          *CollectorConfig
 }
 
-func NewCollector(config CollectorConfig) Collector {
+func NewCollector(config *CollectorConfig) Collector {
 	rand.Seed(time.Now().Unix())
 
 	client := http.Client{}

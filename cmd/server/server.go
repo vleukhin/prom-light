@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/gorilla/mux"
 
@@ -13,15 +12,8 @@ import (
 	"github.com/vleukhin/prom-light/cmd/server/storage"
 )
 
-type ServerConfig struct {
-	Addr          string        `env:"ADDRESS"        envDefault:"localhost:8080"`
-	Restore       bool          `env:"RESTORE"        envDefault:"true"`
-	StoreFile     string        `env:"STORE_FILE"     envDefault:"/tmp/devops-metrics-db.json"`
-	StoreInterval time.Duration `env:"STORE_INTERVAL" envDefault:"1m"`
-}
-
 type MetricsServer struct {
-	cfg ServerConfig
+	cfg *ServerConfig
 	str storage.MetricsStorage
 }
 
@@ -34,7 +26,7 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 	return w.Writer.Write(b)
 }
 
-func NewMetricsServer(cfg ServerConfig) (MetricsServer, error) {
+func NewMetricsServer(cfg *ServerConfig) (MetricsServer, error) {
 	var err error
 	var str storage.MetricsStorage
 
