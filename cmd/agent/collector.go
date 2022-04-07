@@ -17,10 +17,10 @@ import (
 )
 
 type CollectorConfig struct {
-	PollInterval   time.Duration `env:"POLL_INTERVAL"`
-	ReportInterval time.Duration `env:"REPORT_INTERVAL"`
-	ReportTimeout  time.Duration `env:"REPORT_TIMEOUT"`
-	ServerAddr     string        `env:"ADDRESS"`
+	PollInterval   time.Duration `env:"POLL_INTERVAL"   envDefault:"2s"`
+	ReportInterval time.Duration `env:"REPORT_INTERVAL" envDefault:"10s"`
+	ReportTimeout  time.Duration `env:"REPORT_TIMEOUT"  envDefault:"1s"`
+	ServerAddr     string        `env:"ADDRESS"         envDefault:"localhost:8080"`
 }
 
 type Collector struct {

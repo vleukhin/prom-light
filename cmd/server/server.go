@@ -14,10 +14,10 @@ import (
 )
 
 type ServerConfig struct {
-	Addr          string        `env:"ADDRESS"`
-	Restore       bool          `env:"RESTORE"`
-	StoreFile     string        `env:"STORE_FILE"`
-	StoreInterval time.Duration `env:"STORE_INTERVAL"`
+	Addr          string        `env:"ADDRESS"        envDefault:"localhost:8080"`
+	Restore       bool          `env:"RESTORE"        envDefault:"true"`
+	StoreFile     string        `env:"STORE_FILE"     envDefault:"/tmp/devops-metrics-db.json"`
+	StoreInterval time.Duration `env:"STORE_INTERVAL" envDefault:"1m"`
 }
 
 type MetricsServer struct {
