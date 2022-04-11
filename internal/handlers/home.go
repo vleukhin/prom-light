@@ -6,9 +6,9 @@ import (
 	"html/template"
 	"net/http"
 
-	"github.com/vleukhin/prom-light/internal/metrics"
+	"github.com/vleukhin/prom-light/internal/storage"
 
-	"github.com/vleukhin/prom-light/cmd/server/storage"
+	"github.com/vleukhin/prom-light/internal/metrics"
 )
 
 //go:embed templates

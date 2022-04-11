@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"compress/gzip"
@@ -6,15 +6,15 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gorilla/mux"
+	handlers2 "github.com/vleukhin/prom-light/internal/handlers"
+	storage2 "github.com/vleukhin/prom-light/internal/storage"
 
-	"github.com/vleukhin/prom-light/cmd/server/handlers"
-	"github.com/vleukhin/prom-light/cmd/server/storage"
+	"github.com/gorilla/mux"
 )
 
 type MetricsServer struct {
 	cfg *ServerConfig
-	str storage.MetricsStorage
+	str storage2.MetricsStorage
 }
 
 type gzipWriter struct {
@@ -28,12 +28,12 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 
 func NewMetricsServer(cfg *ServerConfig) (MetricsServer, error) {
 	var err error
-	var str storage.MetricsStorage
+	var str storage2.MetricsStorage
 
 	if cfg.StoreFile == "" {
-		str = storage.NewMemoryStorage()
+		str = storage2.NewMemoryStorage()
 	} else {
-		str, err = storage.NewFileStorage(cfg.StoreFile, cfg.StoreInterval, cfg.Restore)
+		str, err = storage2.NewFileStorage(cfg.StoreFile, cfg.StoreInterval, cfg.Restore)
 		if err != nil {
 			return MetricsServer{}, err
 		}
@@ -53,12 +53,12 @@ func (s MetricsServer) Stop() {
 	s.str.ShutDown()
 }
 
-func NewRouter(str storage.MetricsStorage) *mux.Router {
-	homeHandler := handlers.NewHomeHandler(str)
-	updateHandler := handlers.NewUpdateMetricHandler(str)
-	updateJSONHandler := handlers.NewUpdateMetricJSONHandler(str)
-	getHandler := handlers.NewGetMetricHandler(str)
-	getJSONHandler := handlers.NewGetMetricJSONHandler(str)
+func NewRouter(str storage2.MetricsStorage) *mux.Router {
+	homeHandler := handlers2.NewHomeHandler(str)
+	updateHandler := handlers2.NewUpdateMetricHandler(str)
+	updateJSONHandler := handlers2.NewUpdateMetricJSONHandler(str)
+	getHandler := handlers2.NewGetMetricHandler(str)
+	getJSONHandler := handlers2.NewGetMetricJSONHandler(str)
 
 	r := mux.NewRouter()
 	r.Use(gzipEncode)

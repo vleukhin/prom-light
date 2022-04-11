@@ -1,6 +1,7 @@
-package main
+package internal
 
 import (
+	"log"
 	"time"
 
 	"github.com/caarlos0/env/v6"
@@ -12,6 +13,13 @@ type ServerConfig struct {
 	Restore       bool          `env:"RESTORE"        envDefault:"true"`
 	StoreFile     string        `env:"STORE_FILE"     envDefault:"/tmp/devops-metrics-db.json"`
 	StoreInterval time.Duration `env:"STORE_INTERVAL" envDefault:"1m"`
+}
+
+type AgentConfig struct {
+	PollInterval   time.Duration `env:"POLL_INTERVAL"   envDefault:"2s"`
+	ReportInterval time.Duration `env:"REPORT_INTERVAL" envDefault:"10s"`
+	ReportTimeout  time.Duration `env:"REPORT_TIMEOUT"  envDefault:"1s"`
+	ServerAddr     string        `env:"ADDRESS"         envDefault:"localhost:8080"`
 }
 
 func (cfg *ServerConfig) Init() error {
@@ -31,6 +39,27 @@ func (cfg *ServerConfig) Init() error {
 	cfg.Restore = *restore
 	cfg.StoreInterval = *storeInterval
 	cfg.StoreFile = *storeFile
+
+	return nil
+}
+
+func (cfg *AgentConfig) Init() error {
+	err := env.Parse(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	serverAddr := pflag.StringP("addr", "a", cfg.ServerAddr, "Server address")
+	pollInterval := pflag.DurationP("poll-interval", "p", cfg.PollInterval, "Poll interval")
+	reportInterval := pflag.DurationP("report-interval", "r", cfg.ReportInterval, "Report interval")
+	reportTimeout := pflag.DurationP("report-timeout", "t", cfg.ReportTimeout, "Report timeout")
+
+	pflag.Parse()
+
+	cfg.ServerAddr = *serverAddr
+	cfg.PollInterval = *pollInterval
+	cfg.ReportInterval = *reportInterval
+	cfg.ReportTimeout = *reportTimeout
 
 	return nil
 }

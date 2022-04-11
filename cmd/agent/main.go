@@ -5,16 +5,18 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/vleukhin/prom-light/internal"
 )
 
 func main() {
-	cfg := &CollectorConfig{}
+	cfg := &internal.AgentConfig{}
 	if err := cfg.Init(); err != nil {
 		log.Fatal(err.Error())
 	}
-	collector := NewCollector(cfg)
 
-	go collector.Start()
+	agent := internal.NewAgent(cfg)
+	go agent.Start()
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Ignore(syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
@@ -22,6 +24,6 @@ func main() {
 
 	<-sigChan
 	log.Println("Terminating...")
-	collector.Stop()
+	agent.Stop()
 	os.Exit(0)
 }

@@ -5,15 +5,17 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/vleukhin/prom-light/internal"
 )
 
 func main() {
-	cfg := &ServerConfig{}
+	cfg := &internal.ServerConfig{}
 	if err := cfg.Init(); err != nil {
 		log.Fatal(err.Error())
 	}
 
-	server, err := NewMetricsServer(cfg)
+	server, err := internal.NewMetricsServer(cfg)
 	if err != nil {
 		log.Fatal(err.Error())
 	}

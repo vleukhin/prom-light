@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"bytes"
@@ -7,9 +7,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/vleukhin/prom-light/internal/storage"
+
 	"github.com/stretchr/testify/require"
 
-	"github.com/vleukhin/prom-light/cmd/server/storage"
 	"github.com/vleukhin/prom-light/internal/metrics"
 )
 
