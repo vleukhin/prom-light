@@ -1,37 +1,22 @@
 package main
 
 import (
-	"github.com/caarlos0/env/v6"
-	"github.com/spf13/pflag"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/vleukhin/prom-light/internal"
 )
 
 func main() {
-	var cfg CollectorConfig
-
-	err := env.Parse(&cfg)
-	if err != nil {
-		log.Fatal(err)
+	cfg := &internal.AgentConfig{}
+	if err := cfg.Init(); err != nil {
+		log.Fatal(err.Error())
 	}
 
-	serverAddr := pflag.StringP("addr", "a", cfg.ServerAddr, "Server address")
-	pollInterval := pflag.DurationP("poll-interval", "p", cfg.PollInterval, "Poll interval")
-	reportInterval := pflag.DurationP("report-interval", "r", cfg.ReportInterval, "Report interval")
-	reportTimeout := pflag.DurationP("report-timeout", "t", cfg.ReportTimeout, "Report timeout")
-
-	pflag.Parse()
-
-	cfg.ServerAddr = *serverAddr
-	cfg.PollInterval = *pollInterval
-	cfg.ReportInterval = *reportInterval
-	cfg.ReportTimeout = *reportTimeout
-
-	collector := NewCollector(cfg)
-
-	go collector.Start()
+	agent := internal.NewAgent(cfg)
+	go agent.Start()
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Ignore(syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
@@ -39,6 +24,6 @@ func main() {
 
 	<-sigChan
 	log.Println("Terminating...")
-	collector.Stop()
+	agent.Stop()
 	os.Exit(0)
 }

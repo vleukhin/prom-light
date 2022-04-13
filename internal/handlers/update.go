@@ -7,9 +7,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/vleukhin/prom-light/internal/storage"
+
 	"github.com/gorilla/mux"
 
-	"github.com/vleukhin/prom-light/cmd/server/storage"
 	"github.com/vleukhin/prom-light/internal/metrics"
 )
 

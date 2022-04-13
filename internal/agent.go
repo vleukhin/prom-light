@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"bytes"
@@ -12,32 +12,25 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/vleukhin/prom-light/cmd/server/storage"
 	"github.com/vleukhin/prom-light/internal/metrics"
+	"github.com/vleukhin/prom-light/internal/storage"
 )
 
-type CollectorConfig struct {
-	PollInterval   time.Duration `env:"POLL_INTERVAL"   envDefault:"2s"`
-	ReportInterval time.Duration `env:"REPORT_INTERVAL" envDefault:"10s"`
-	ReportTimeout  time.Duration `env:"REPORT_TIMEOUT"  envDefault:"1s"`
-	ServerAddr     string        `env:"ADDRESS"         envDefault:"localhost:8080"`
-}
-
-type Collector struct {
+type Agent struct {
 	storage      storage.MetricsStorage
 	pollTicker   *time.Ticker
 	reportTicker *time.Ticker
 	client       http.Client
-	cfg          CollectorConfig
+	cfg          *AgentConfig
 }
 
-func NewCollector(config CollectorConfig) Collector {
+func NewAgent(config *AgentConfig) Agent {
 	rand.Seed(time.Now().Unix())
 
 	client := http.Client{}
 	client.Timeout = config.ReportTimeout
 
-	return Collector{
+	return Agent{
 		storage.NewMemoryStorage(),
 		time.NewTicker(config.PollInterval),
 		time.NewTicker(config.ReportInterval),
@@ -46,7 +39,7 @@ func NewCollector(config CollectorConfig) Collector {
 	}
 }
 
-func (c *Collector) Start() {
+func (c *Agent) Start() {
 	for {
 		select {
 		case <-c.pollTicker.C:
@@ -57,12 +50,12 @@ func (c *Collector) Start() {
 	}
 }
 
-func (c *Collector) Stop() {
+func (c *Agent) Stop() {
 	c.pollTicker.Stop()
 	c.reportTicker.Stop()
 }
 
-func (c *Collector) poll() {
+func (c *Agent) poll() {
 	log.Println("Polling metrics")
 	m := &runtime.MemStats{}
 	runtime.ReadMemStats(m)
@@ -99,7 +92,7 @@ func (c *Collector) poll() {
 	c.storage.IncCounter(metrics.PollCount, 1)
 }
 
-func (c *Collector) report() {
+func (c *Agent) report() {
 	log.Println("Sending metrics")
 	mtrcs := c.storage.GetAllMetrics(true)
 
@@ -115,7 +108,7 @@ func (c *Collector) report() {
 	}
 }
 
-func (c *Collector) sendReportRequest(m metrics.Metric) error {
+func (c *Agent) sendReportRequest(m metrics.Metric) error {
 	data, err := json.Marshal(m)
 	if err != nil {
 		return err
