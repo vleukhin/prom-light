@@ -10,6 +10,7 @@ type Metric struct {
 	Type  string   `json:"type"`            // параметр, принимающий значение gauge или counter
 	Delta *Counter `json:"delta,omitempty"` // значение метрики в случае передачи counter
 	Value *Gauge   `json:"value,omitempty"` // значение метрики в случае передачи gauge
+	Hash  string   `json:"hash,omitempty"`  // значение хеш-функции
 }
 
 type Metrics []Metric

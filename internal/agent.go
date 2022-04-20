@@ -2,9 +2,13 @@ package internal
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash"
 	"log"
 	"math/rand"
 	"net/http"
@@ -22,6 +26,7 @@ type Agent struct {
 	reportTicker *time.Ticker
 	client       http.Client
 	cfg          *AgentConfig
+	hasher       hash.Hash
 }
 
 func NewAgent(config *AgentConfig) Agent {
@@ -30,13 +35,20 @@ func NewAgent(config *AgentConfig) Agent {
 	client := http.Client{}
 	client.Timeout = config.ReportTimeout
 
-	return Agent{
+	agent := Agent{
 		storage.NewMemoryStorage(),
 		time.NewTicker(config.PollInterval),
 		time.NewTicker(config.ReportInterval),
 		client,
 		config,
+		nil,
 	}
+
+	if config.Key != "" {
+		agent.hasher = hmac.New(sha256.New, []byte(config.Key))
+	}
+
+	return agent
 }
 
 func (c *Agent) Start() {
@@ -109,7 +121,9 @@ func (c *Agent) report() {
 }
 
 func (c *Agent) sendReportRequest(m metrics.Metric) error {
+	c.Sign(&m)
 	data, err := json.Marshal(m)
+	fmt.Println(string(data))
 	if err != nil {
 		return err
 	}
@@ -127,4 +141,20 @@ func (c *Agent) sendReportRequest(m metrics.Metric) error {
 	}
 
 	return nil
+}
+
+func (c *Agent) Sign(m *metrics.Metric) {
+	if c.hasher == nil {
+		return
+	}
+
+	switch m.Type {
+	case metrics.CounterTypeName:
+		c.hasher.Write([]byte(fmt.Sprintf("%s:counter:%d", m.Name, m.Delta)))
+	case metrics.GaugeTypeName:
+		c.hasher.Write([]byte(fmt.Sprintf("%s:gauge:%d", m.Name, m.Value)))
+	}
+
+	m.Hash = hex.EncodeToString(c.hasher.Sum(nil))
+	c.hasher.Reset()
 }
