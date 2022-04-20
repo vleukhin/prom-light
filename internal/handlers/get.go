@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"hash"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -19,7 +20,8 @@ type GetMetricHandler struct {
 }
 
 type GetMetricJSONHandler struct {
-	store storage.MetricsGetter
+	store  storage.MetricsGetter
+	hasher hash.Hash
 }
 
 func NewGetMetricHandler(storage storage.MetricsGetter) GetMetricHandler {
@@ -28,9 +30,10 @@ func NewGetMetricHandler(storage storage.MetricsGetter) GetMetricHandler {
 	}
 }
 
-func NewGetMetricJSONHandler(storage storage.MetricsGetter) GetMetricJSONHandler {
+func NewGetMetricJSONHandler(storage storage.MetricsGetter, hasher hash.Hash) GetMetricJSONHandler {
 	return GetMetricJSONHandler{
-		store: storage,
+		store:  storage,
+		hasher: hasher,
 	}
 }
 
@@ -108,6 +111,7 @@ func (h GetMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		m.Delta = &value
 	}
 
+	m.Sign(h.hasher)
 	respBody, err := json.Marshal(m)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

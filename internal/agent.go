@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -100,6 +99,7 @@ func (c *Agent) poll() {
 	c.storage.SetGauge(metrics.Sys, metrics.Gauge(m.Sys))
 	c.storage.SetGauge(metrics.TotalAlloc, metrics.Gauge(m.TotalAlloc))
 	c.storage.SetGauge(metrics.RandomValue, metrics.Gauge(rand.Intn(100)))
+	c.storage.SetGauge(metrics.StaticGauge, 100)
 
 	c.storage.IncCounter(metrics.PollCount, 1)
 }
@@ -121,9 +121,9 @@ func (c *Agent) report() {
 }
 
 func (c *Agent) sendReportRequest(m metrics.Metric) error {
-	c.Sign(&m)
+	m.Sign(c.hasher)
+
 	data, err := json.Marshal(m)
-	fmt.Println(string(data))
 	if err != nil {
 		return err
 	}
@@ -141,20 +141,4 @@ func (c *Agent) sendReportRequest(m metrics.Metric) error {
 	}
 
 	return nil
-}
-
-func (c *Agent) Sign(m *metrics.Metric) {
-	if c.hasher == nil {
-		return
-	}
-
-	switch m.Type {
-	case metrics.CounterTypeName:
-		c.hasher.Write([]byte(fmt.Sprintf("%s:counter:%d", m.Name, m.Delta)))
-	case metrics.GaugeTypeName:
-		c.hasher.Write([]byte(fmt.Sprintf("%s:gauge:%d", m.Name, m.Value)))
-	}
-
-	m.Hash = hex.EncodeToString(c.hasher.Sum(nil))
-	c.hasher.Reset()
 }

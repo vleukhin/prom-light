@@ -2,16 +2,16 @@ package handlers
 
 import (
 	"encoding/json"
+	"hash"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
 
-	"github.com/vleukhin/prom-light/internal/storage"
-
 	"github.com/gorilla/mux"
 
 	"github.com/vleukhin/prom-light/internal/metrics"
+	"github.com/vleukhin/prom-light/internal/storage"
 )
 
 type UpdateMetricHandler struct {
@@ -19,7 +19,8 @@ type UpdateMetricHandler struct {
 }
 
 type UpdateMetricJSONHandler struct {
-	store storage.MetricsSetter
+	store  storage.MetricsSetter
+	hasher hash.Hash
 }
 
 func NewUpdateMetricHandler(storage storage.MetricsSetter) UpdateMetricHandler {
@@ -28,9 +29,10 @@ func NewUpdateMetricHandler(storage storage.MetricsSetter) UpdateMetricHandler {
 	}
 }
 
-func NewUpdateMetricJSONHandler(storage storage.MetricsSetter) UpdateMetricJSONHandler {
+func NewUpdateMetricJSONHandler(storage storage.MetricsSetter, hasher hash.Hash) UpdateMetricJSONHandler {
 	return UpdateMetricJSONHandler{
-		store: storage,
+		store:  storage,
+		hasher: hasher,
 	}
 }
 
@@ -80,6 +82,12 @@ func (h UpdateMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	err = json.Unmarshal(body, &m)
 	if err != nil {
 		log.Println("Failed to parse JSON: " + err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if !m.IsValid(h.hasher) {
+		log.Println("Invalid hash in metric " + m.Name)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}

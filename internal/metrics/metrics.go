@@ -1,6 +1,10 @@
 package metrics
 
-import "fmt"
+import (
+	"encoding/hex"
+	"fmt"
+	"hash"
+)
 
 type Gauge float64
 type Counter int64
@@ -48,6 +52,7 @@ const (
 	TotalAlloc    = "TotalAlloc"
 	RandomValue   = "RandomValue"
 	PollCount     = "PollCount"
+	StaticGauge   = "StaticGauge"
 )
 
 func (m Metric) IsCounter() bool {
@@ -66,4 +71,31 @@ func (m Metric) String() string {
 	}
 
 	return str
+}
+
+func makeHash(m Metric, hasher hash.Hash) string {
+	if hasher == nil {
+		return ""
+	}
+
+	switch m.Type {
+	case CounterTypeName:
+		hasher.Write([]byte(fmt.Sprintf("%s:counter:%d", m.Name, *m.Delta)))
+	case GaugeTypeName:
+		hasher.Write([]byte(fmt.Sprintf("%s:gauge:%f", m.Name, *m.Value)))
+	}
+
+	defer hasher.Reset()
+	return hex.EncodeToString(hasher.Sum(nil))
+}
+
+func (m *Metric) Sign(hasher hash.Hash) {
+	if hasher == nil {
+		return
+	}
+	m.Hash = makeHash(*m, hasher)
+}
+
+func (m Metric) IsValid(hasher hash.Hash) bool {
+	return m.Hash == makeHash(m, hasher)
 }
