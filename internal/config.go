@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -44,8 +43,6 @@ func (cfg *ServerConfig) Init() error {
 	cfg.StoreInterval = *storeInterval
 	cfg.StoreFile = *storeFile
 	cfg.Key = *key
-
-	fmt.Println(*key)
 
 	return nil
 }
