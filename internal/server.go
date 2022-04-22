@@ -2,6 +2,7 @@ package internal
 
 import (
 	"compress/gzip"
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"hash"
@@ -34,13 +35,19 @@ func NewMetricsServer(config *ServerConfig) (MetricsServer, error) {
 	var err error
 	var str storage.MetricsStorage
 
-	if config.StoreFile == "" {
-		str = storage.NewMemoryStorage()
-	} else {
+	switch true {
+	case config.DatabaseDSN != "":
+		str, err = storage.NewDatabaseStorage(context.TODO(), config.DatabaseDSN)
+		if err != nil {
+			return MetricsServer{}, err
+		}
+	case config.StoreFile != "":
 		str, err = storage.NewFileStorage(config.StoreFile, config.StoreInterval, config.Restore)
 		if err != nil {
 			return MetricsServer{}, err
 		}
+	default:
+		str = storage.NewMemoryStorage()
 	}
 
 	server := MetricsServer{
@@ -61,8 +68,8 @@ func (s MetricsServer) Run(err chan<- error) {
 	err <- http.ListenAndServe(s.cfg.Addr, NewRouter(s.str, s.hasher))
 }
 
-func (s MetricsServer) Stop() {
-	s.str.ShutDown()
+func (s MetricsServer) Stop() error {
+	return s.str.ShutDown()
 }
 
 func NewRouter(str storage.MetricsStorage, hasher hash.Hash) *mux.Router {

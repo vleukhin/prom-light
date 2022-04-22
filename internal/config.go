@@ -14,6 +14,7 @@ type ServerConfig struct {
 	StoreFile     string        `env:"STORE_FILE"     envDefault:"/tmp/devops-metrics-db.json"`
 	StoreInterval time.Duration `env:"STORE_INTERVAL" envDefault:"1m"`
 	Key           string        `env:"KEY"`
+	DatabaseDSN   string        `env:"DATABASE_DSN"`
 }
 
 type AgentConfig struct {
@@ -35,6 +36,7 @@ func (cfg *ServerConfig) Init() error {
 	storeInterval := pflag.DurationP("store-interval", "i", cfg.StoreInterval, "Store interval. 0 enables sync mode")
 	storeFile := pflag.StringP("file", "f", cfg.StoreFile, "Path for file storage. Empty value disables file storage")
 	key := pflag.StringP("key", "k", cfg.Key, "Secret key for signing data")
+	dsn := pflag.StringP("database-dsn", "d", cfg.DatabaseDSN, "Database connection string")
 
 	pflag.Parse()
 
@@ -43,6 +45,7 @@ func (cfg *ServerConfig) Init() error {
 	cfg.StoreInterval = *storeInterval
 	cfg.StoreFile = *storeFile
 	cfg.Key = *key
+	cfg.DatabaseDSN = *dsn
 
 	return nil
 }

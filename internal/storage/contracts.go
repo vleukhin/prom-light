@@ -12,7 +12,7 @@ type AllMetrics struct {
 type MetricsStorage interface {
 	MetricsGetter
 	MetricsSetter
-	ShutDown()
+	ShutDown() error
 }
 
 type MetricsGetter interface {

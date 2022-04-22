@@ -113,12 +113,14 @@ func (s *fileStorage) RestoreData() error {
 	return nil
 }
 
-func (s *fileStorage) ShutDown() {
+func (s *fileStorage) ShutDown() error {
 	s.StoreData()
 
 	if !s.syncMode {
 		s.storeTicker.Stop()
 	}
+
+	return nil
 }
 
 func (s *fileStorage) SetGauge(metricName string, value metrics.Gauge) {
