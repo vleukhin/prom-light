@@ -13,6 +13,7 @@ type ServerConfig struct {
 	Restore       bool          `env:"RESTORE"        envDefault:"true"`
 	StoreFile     string        `env:"STORE_FILE"     envDefault:"/tmp/devops-metrics-db.json"`
 	StoreInterval time.Duration `env:"STORE_INTERVAL" envDefault:"1m"`
+	Key           string        `env:"KEY"`
 }
 
 type AgentConfig struct {
@@ -20,6 +21,7 @@ type AgentConfig struct {
 	ReportInterval time.Duration `env:"REPORT_INTERVAL" envDefault:"10s"`
 	ReportTimeout  time.Duration `env:"REPORT_TIMEOUT"  envDefault:"1s"`
 	ServerAddr     string        `env:"ADDRESS"         envDefault:"localhost:8080"`
+	Key            string        `env:"KEY"`
 }
 
 func (cfg *ServerConfig) Init() error {
@@ -32,6 +34,7 @@ func (cfg *ServerConfig) Init() error {
 	restore := pflag.BoolP("restore", "r", cfg.Restore, "Restore data on start up")
 	storeInterval := pflag.DurationP("store-interval", "i", cfg.StoreInterval, "Store interval. 0 enables sync mode")
 	storeFile := pflag.StringP("file", "f", cfg.StoreFile, "Path for file storage. Empty value disables file storage")
+	key := pflag.StringP("key", "k", cfg.Key, "Secret key for signing data")
 
 	pflag.Parse()
 
@@ -39,6 +42,7 @@ func (cfg *ServerConfig) Init() error {
 	cfg.Restore = *restore
 	cfg.StoreInterval = *storeInterval
 	cfg.StoreFile = *storeFile
+	cfg.Key = *key
 
 	return nil
 }
@@ -53,6 +57,7 @@ func (cfg *AgentConfig) Init() error {
 	pollInterval := pflag.DurationP("poll-interval", "p", cfg.PollInterval, "Poll interval")
 	reportInterval := pflag.DurationP("report-interval", "r", cfg.ReportInterval, "Report interval")
 	reportTimeout := pflag.DurationP("report-timeout", "t", cfg.ReportTimeout, "Report timeout")
+	key := pflag.StringP("key", "k", cfg.Key, "Secret key for signing data")
 
 	pflag.Parse()
 
@@ -60,6 +65,7 @@ func (cfg *AgentConfig) Init() error {
 	cfg.PollInterval = *pollInterval
 	cfg.ReportInterval = *reportInterval
 	cfg.ReportTimeout = *reportTimeout
+	cfg.Key = *key
 
 	return nil
 }

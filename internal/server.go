@@ -2,19 +2,23 @@ package internal
 
 import (
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
+	"hash"
 	"log"
 	"net/http"
 	"strings"
 
-	handlers2 "github.com/vleukhin/prom-light/internal/handlers"
-	storage2 "github.com/vleukhin/prom-light/internal/storage"
-
 	"github.com/gorilla/mux"
+
+	"github.com/vleukhin/prom-light/internal/handlers"
+	"github.com/vleukhin/prom-light/internal/storage"
 )
 
 type MetricsServer struct {
-	cfg *ServerConfig
-	str storage2.MetricsStorage
+	cfg    *ServerConfig
+	str    storage.MetricsStorage
+	hasher hash.Hash
 }
 
 type gzipWriter struct {
@@ -26,39 +30,47 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 	return w.Writer.Write(b)
 }
 
-func NewMetricsServer(cfg *ServerConfig) (MetricsServer, error) {
+func NewMetricsServer(config *ServerConfig) (MetricsServer, error) {
 	var err error
-	var str storage2.MetricsStorage
+	var str storage.MetricsStorage
 
-	if cfg.StoreFile == "" {
-		str = storage2.NewMemoryStorage()
+	if config.StoreFile == "" {
+		str = storage.NewMemoryStorage()
 	} else {
-		str, err = storage2.NewFileStorage(cfg.StoreFile, cfg.StoreInterval, cfg.Restore)
+		str, err = storage.NewFileStorage(config.StoreFile, config.StoreInterval, config.Restore)
 		if err != nil {
 			return MetricsServer{}, err
 		}
 	}
-	return MetricsServer{
-		cfg: cfg,
-		str: str,
-	}, nil
+
+	server := MetricsServer{
+		config,
+		str,
+		nil,
+	}
+
+	if config.Key != "" {
+		server.hasher = hmac.New(sha256.New, []byte(config.Key))
+	}
+
+	return server, nil
 }
 
 func (s MetricsServer) Run(err chan<- error) {
 	log.Println("Metrics server listen at: " + s.cfg.Addr)
-	err <- http.ListenAndServe(s.cfg.Addr, NewRouter(s.str))
+	err <- http.ListenAndServe(s.cfg.Addr, NewRouter(s.str, s.hasher))
 }
 
 func (s MetricsServer) Stop() {
 	s.str.ShutDown()
 }
 
-func NewRouter(str storage2.MetricsStorage) *mux.Router {
-	homeHandler := handlers2.NewHomeHandler(str)
-	updateHandler := handlers2.NewUpdateMetricHandler(str)
-	updateJSONHandler := handlers2.NewUpdateMetricJSONHandler(str)
-	getHandler := handlers2.NewGetMetricHandler(str)
-	getJSONHandler := handlers2.NewGetMetricJSONHandler(str)
+func NewRouter(str storage.MetricsStorage, hasher hash.Hash) *mux.Router {
+	homeHandler := handlers.NewHomeHandler(str)
+	updateHandler := handlers.NewUpdateMetricHandler(str)
+	updateJSONHandler := handlers.NewUpdateMetricJSONHandler(str, hasher)
+	getHandler := handlers.NewGetMetricHandler(str)
+	getJSONHandler := handlers.NewGetMetricJSONHandler(str, hasher)
 
 	r := mux.NewRouter()
 	r.Use(gzipEncode)
