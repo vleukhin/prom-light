@@ -87,6 +87,12 @@ func (m *memoryStorage) GetAllMetrics(resetCounters bool) []metrics.Metric {
 	return result
 }
 
-func (m *memoryStorage) ShutDown() {
+func (m *memoryStorage) ShutDown() error {
 	// nothing to do here
+	return nil
+}
+
+func (m *memoryStorage) Ping() error {
+	// nothing to do here
+	return nil
 }

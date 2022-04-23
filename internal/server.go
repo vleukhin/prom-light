@@ -2,6 +2,7 @@ package internal
 
 import (
 	"compress/gzip"
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"hash"
@@ -34,13 +35,19 @@ func NewMetricsServer(config *ServerConfig) (MetricsServer, error) {
 	var err error
 	var str storage.MetricsStorage
 
-	if config.StoreFile == "" {
-		str = storage.NewMemoryStorage()
-	} else {
+	switch true {
+	case config.DatabaseDSN != "":
+		str, err = storage.NewDatabaseStorage(context.TODO(), config.DatabaseDSN)
+		if err != nil {
+			return MetricsServer{}, err
+		}
+	case config.StoreFile != "":
 		str, err = storage.NewFileStorage(config.StoreFile, config.StoreInterval, config.Restore)
 		if err != nil {
 			return MetricsServer{}, err
 		}
+	default:
+		str = storage.NewMemoryStorage()
 	}
 
 	server := MetricsServer{
@@ -61,8 +68,8 @@ func (s MetricsServer) Run(err chan<- error) {
 	err <- http.ListenAndServe(s.cfg.Addr, NewRouter(s.str, s.hasher))
 }
 
-func (s MetricsServer) Stop() {
-	s.str.ShutDown()
+func (s MetricsServer) Stop() error {
+	return s.str.ShutDown()
 }
 
 func NewRouter(str storage.MetricsStorage, hasher hash.Hash) *mux.Router {
@@ -79,6 +86,7 @@ func NewRouter(str storage.MetricsStorage, hasher hash.Hash) *mux.Router {
 	r.Handle("/update/{type}/{name}/{value}", updateHandler).Methods(http.MethodPost)
 	r.Handle("/value/", getJSONHandler).Methods(http.MethodPost)
 	r.Handle("/value/{type}/{name}", getHandler).Methods(http.MethodGet, http.MethodHead)
+	r.Handle("/ping", pingHandler(str)).Methods(http.MethodGet, http.MethodHead)
 
 	return r
 }
@@ -106,4 +114,14 @@ func gzipEncode(next http.Handler) http.Handler {
 		w.Header().Set("Content-Encoding", "gzip")
 		next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gz}, r)
 	})
+}
+
+func pingHandler(store storage.MetricsStorage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := store.Ping()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
 }

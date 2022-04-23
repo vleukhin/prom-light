@@ -12,7 +12,8 @@ type AllMetrics struct {
 type MetricsStorage interface {
 	MetricsGetter
 	MetricsSetter
-	ShutDown()
+	Ping() error
+	ShutDown() error
 }
 
 type MetricsGetter interface {

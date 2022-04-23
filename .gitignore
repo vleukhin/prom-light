@@ -22,5 +22,6 @@ vendor/
 
 # IDEs directories
 .idea
+.data
 .vscode
 devopstest

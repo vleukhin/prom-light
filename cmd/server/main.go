@@ -24,7 +24,12 @@ func main() {
 	sigChan := make(chan os.Signal, 1)
 
 	go server.Run(errChan)
-	defer server.Stop()
+	defer func(server internal.MetricsServer) {
+		err := server.Stop()
+		if err != nil {
+			panic(err)
+		}
+	}(server)
 
 	signal.Ignore(syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)

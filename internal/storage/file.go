@@ -113,12 +113,14 @@ func (s *fileStorage) RestoreData() error {
 	return nil
 }
 
-func (s *fileStorage) ShutDown() {
+func (s *fileStorage) ShutDown() error {
 	s.StoreData()
 
 	if !s.syncMode {
 		s.storeTicker.Stop()
 	}
+
+	return nil
 }
 
 func (s *fileStorage) SetGauge(metricName string, value metrics.Gauge) {
@@ -145,4 +147,13 @@ func (s *fileStorage) GetCounter(name string) (metrics.Counter, error) {
 
 func (s *fileStorage) GetAllMetrics(resetCounters bool) []metrics.Metric {
 	return s.memStorage.GetAllMetrics(resetCounters)
+}
+
+func (s *fileStorage) Ping() error {
+	f, err := s.openFile()
+	if err != nil {
+		return err
+	}
+
+	return f.Close()
 }
