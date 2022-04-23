@@ -50,3 +50,7 @@ func (s DatabaseStorage) IncCounter(metricName string, value metrics.Counter) {
 func (s DatabaseStorage) ShutDown() error {
 	return s.conn.Close(context.TODO())
 }
+
+func (s DatabaseStorage) Ping() error {
+	return s.conn.Ping(context.TODO())
+}

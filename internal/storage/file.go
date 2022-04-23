@@ -148,3 +148,12 @@ func (s *fileStorage) GetCounter(name string) (metrics.Counter, error) {
 func (s *fileStorage) GetAllMetrics(resetCounters bool) []metrics.Metric {
 	return s.memStorage.GetAllMetrics(resetCounters)
 }
+
+func (s *fileStorage) Ping() error {
+	f, err := s.openFile()
+	if err != nil {
+		return err
+	}
+
+	return f.Close()
+}

@@ -86,6 +86,7 @@ func NewRouter(str storage.MetricsStorage, hasher hash.Hash) *mux.Router {
 	r.Handle("/update/{type}/{name}/{value}", updateHandler).Methods(http.MethodPost)
 	r.Handle("/value/", getJSONHandler).Methods(http.MethodPost)
 	r.Handle("/value/{type}/{name}", getHandler).Methods(http.MethodGet, http.MethodHead)
+	r.Handle("/ping", pingHandler(str)).Methods(http.MethodGet, http.MethodHead)
 
 	return r
 }
@@ -113,4 +114,14 @@ func gzipEncode(next http.Handler) http.Handler {
 		w.Header().Set("Content-Encoding", "gzip")
 		next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gz}, r)
 	})
+}
+
+func pingHandler(store storage.MetricsStorage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := store.Ping()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
 }
