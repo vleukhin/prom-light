@@ -56,6 +56,11 @@ func NewMetricsServer(config *ServerConfig) (MetricsServer, error) {
 		nil,
 	}
 
+	err = server.migrate()
+	if err != nil {
+		return MetricsServer{}, err
+	}
+
 	if config.Key != "" {
 		server.hasher = hmac.New(sha256.New, []byte(config.Key))
 	}
@@ -124,4 +129,13 @@ func pingHandler(store storage.MetricsStorage) http.HandlerFunc {
 			return
 		}
 	}
+}
+
+func (s MetricsServer) migrate() error {
+	store, ok := s.str.(storage.DatabaseStorage)
+	if !ok {
+		return nil
+	}
+
+	return store.Migrate(context.TODO())
 }

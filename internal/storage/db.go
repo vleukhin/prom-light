@@ -54,3 +54,17 @@ func (s DatabaseStorage) ShutDown() error {
 func (s DatabaseStorage) Ping() error {
 	return s.conn.Ping(context.TODO())
 }
+
+// language=PostgreSQL
+const createMetricsTable = `
+	CREATE TABLE IF NOT EXISTS metrics (
+		id    serial constraint table_name_pk primary key,
+		name  varchar(255) not null unique,
+		value float8       not null
+	)
+`
+
+func (s DatabaseStorage) Migrate(ctx context.Context) error {
+	_, err := s.conn.Exec(ctx, createMetricsTable)
+	return err
+}
