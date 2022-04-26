@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"errors"
 	"sync"
 
@@ -20,12 +21,12 @@ func NewMemoryStorage() *memoryStorage {
 	}
 }
 
-func (m *memoryStorage) SetGauge(metricName string, value metrics.Gauge) {
+func (m *memoryStorage) SetGauge(_ context.Context, metricName string, value metrics.Gauge) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	m.gaugeMetrics[metricName] = value
 }
-func (m *memoryStorage) IncCounter(metricName string, value metrics.Counter) {
+func (m *memoryStorage) IncCounter(_ context.Context, metricName string, value metrics.Counter) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	oldValue, ok := m.counterMetrics[metricName]
@@ -35,10 +36,10 @@ func (m *memoryStorage) IncCounter(metricName string, value metrics.Counter) {
 	m.counterMetrics[metricName] = oldValue + value
 }
 
-func (m *memoryStorage) GetGauge(name string) (metrics.Gauge, error) {
+func (m *memoryStorage) GetGauge(_ context.Context, metricName string) (metrics.Gauge, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	value, exists := m.gaugeMetrics[name]
+	value, exists := m.gaugeMetrics[metricName]
 	if !exists {
 		return 0, errors.New("unknown gauge")
 	}
@@ -46,7 +47,7 @@ func (m *memoryStorage) GetGauge(name string) (metrics.Gauge, error) {
 	return value, nil
 }
 
-func (m *memoryStorage) GetCounter(name string) (metrics.Counter, error) {
+func (m *memoryStorage) GetCounter(_ context.Context, name string) (metrics.Counter, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	value, exists := m.counterMetrics[name]
@@ -57,7 +58,7 @@ func (m *memoryStorage) GetCounter(name string) (metrics.Counter, error) {
 	return value, nil
 }
 
-func (m *memoryStorage) GetAllMetrics(resetCounters bool) []metrics.Metric {
+func (m *memoryStorage) GetAllMetrics(_ context.Context, resetCounters bool) []metrics.Metric {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	result := make([]metrics.Metric, len(m.gaugeMetrics)+len(m.counterMetrics))
@@ -87,12 +88,12 @@ func (m *memoryStorage) GetAllMetrics(resetCounters bool) []metrics.Metric {
 	return result
 }
 
-func (m *memoryStorage) ShutDown() error {
+func (m *memoryStorage) ShutDown(_ context.Context) error {
 	// nothing to do here
 	return nil
 }
 
-func (m *memoryStorage) Ping() error {
+func (m *memoryStorage) Ping(_ context.Context) error {
 	// nothing to do here
 	return nil
 }

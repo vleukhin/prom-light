@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"context"
+
 	"github.com/vleukhin/prom-light/internal/metrics"
 )
 
@@ -12,17 +14,17 @@ type AllMetrics struct {
 type MetricsStorage interface {
 	MetricsGetter
 	MetricsSetter
-	Ping() error
-	ShutDown() error
+	Ping(ctx context.Context) error
+	ShutDown(ctx context.Context) error
 }
 
 type MetricsGetter interface {
-	GetGauge(metricName string) (metrics.Gauge, error)
-	GetCounter(metricName string) (metrics.Counter, error)
-	GetAllMetrics(resetCounters bool) []metrics.Metric
+	GetGauge(ctx context.Context, metricName string) (metrics.Gauge, error)
+	GetCounter(ctx context.Context, metricName string) (metrics.Counter, error)
+	GetAllMetrics(ctx context.Context, resetCounters bool) []metrics.Metric
 }
 
 type MetricsSetter interface {
-	SetGauge(metricName string, value metrics.Gauge)
-	IncCounter(metricName string, value metrics.Counter)
+	SetGauge(ctx context.Context, metricName string, value metrics.Gauge)
+	IncCounter(ctx context.Context, metricName string, value metrics.Counter)
 }

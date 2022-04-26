@@ -47,7 +47,7 @@ func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		log.Printf("Received gauge %s with value %.3f \n", params["name"], value)
-		h.store.SetGauge(params["name"], metrics.Gauge(value))
+		h.store.SetGauge(r.Context(), params["name"], metrics.Gauge(value))
 	case metrics.CounterTypeName:
 		value, err := strconv.ParseInt(params["value"], 10, 64)
 		if err != nil {
@@ -55,7 +55,7 @@ func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		log.Printf("Received counter %s with value %d \n", params["name"], value)
-		h.store.IncCounter(params["name"], metrics.Counter(value))
+		h.store.IncCounter(r.Context(), params["name"], metrics.Counter(value))
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		return
@@ -95,12 +95,12 @@ func (h UpdateMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	switch m.Type {
 	case metrics.GaugeTypeName:
 		if m.Value != nil {
-			h.store.SetGauge(m.Name, *m.Value)
+			h.store.SetGauge(r.Context(), m.Name, *m.Value)
 		}
 
 	case metrics.CounterTypeName:
 		if m.Delta != nil {
-			h.store.IncCounter(m.Name, *m.Delta)
+			h.store.IncCounter(r.Context(), m.Name, *m.Delta)
 		}
 	}
 }

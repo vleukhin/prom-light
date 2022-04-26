@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log"
@@ -77,7 +78,7 @@ func (s *fileStorage) StoreData() {
 		return
 	}
 
-	err = json.NewEncoder(f).Encode(s.memStorage.GetAllMetrics(false))
+	err = json.NewEncoder(f).Encode(s.memStorage.GetAllMetrics(context.Background(), false))
 	if err != nil {
 		log.Println("Failed to store data to file: " + err.Error())
 	} else {
@@ -102,9 +103,9 @@ func (s *fileStorage) RestoreData() error {
 
 	for _, m := range data {
 		if m.IsCounter() {
-			s.memStorage.IncCounter(m.Name, *m.Delta)
+			s.memStorage.IncCounter(context.Background(), m.Name, *m.Delta)
 		} else {
-			s.memStorage.SetGauge(m.Name, *m.Value)
+			s.memStorage.SetGauge(context.Background(), m.Name, *m.Value)
 		}
 	}
 
@@ -113,7 +114,7 @@ func (s *fileStorage) RestoreData() error {
 	return nil
 }
 
-func (s *fileStorage) ShutDown() error {
+func (s *fileStorage) ShutDown(_ context.Context) error {
 	s.StoreData()
 
 	if !s.syncMode {
@@ -123,33 +124,33 @@ func (s *fileStorage) ShutDown() error {
 	return nil
 }
 
-func (s *fileStorage) SetGauge(metricName string, value metrics.Gauge) {
-	s.memStorage.SetGauge(metricName, value)
+func (s *fileStorage) SetGauge(ctx context.Context, metricName string, value metrics.Gauge) {
+	s.memStorage.SetGauge(ctx, metricName, value)
 	if s.syncMode {
 		s.StoreData()
 	}
 }
 
-func (s *fileStorage) IncCounter(metricName string, value metrics.Counter) {
-	s.memStorage.IncCounter(metricName, value)
+func (s *fileStorage) IncCounter(ctx context.Context, metricName string, value metrics.Counter) {
+	s.memStorage.IncCounter(ctx, metricName, value)
 	if s.syncMode {
 		s.StoreData()
 	}
 }
 
-func (s *fileStorage) GetGauge(name string) (metrics.Gauge, error) {
-	return s.memStorage.GetGauge(name)
+func (s *fileStorage) GetGauge(ctx context.Context, metricName string) (metrics.Gauge, error) {
+	return s.memStorage.GetGauge(ctx, metricName)
 }
 
-func (s *fileStorage) GetCounter(name string) (metrics.Counter, error) {
-	return s.memStorage.GetCounter(name)
+func (s *fileStorage) GetCounter(ctx context.Context, metricName string) (metrics.Counter, error) {
+	return s.memStorage.GetCounter(ctx, metricName)
 }
 
-func (s *fileStorage) GetAllMetrics(resetCounters bool) []metrics.Metric {
-	return s.memStorage.GetAllMetrics(resetCounters)
+func (s *fileStorage) GetAllMetrics(ctx context.Context, resetCounters bool) []metrics.Metric {
+	return s.memStorage.GetAllMetrics(ctx, resetCounters)
 }
 
-func (s *fileStorage) Ping() error {
+func (s *fileStorage) Ping(context.Context) error {
 	f, err := s.openFile()
 	if err != nil {
 		return err

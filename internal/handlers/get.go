@@ -43,7 +43,7 @@ func (h GetMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-type", "text/html")
 	switch params["type"] {
 	case metrics.GaugeTypeName:
-		value, err := h.store.GetGauge(params["name"])
+		value, err := h.store.GetGauge(r.Context(), params["name"])
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -56,7 +56,7 @@ func (h GetMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 	case metrics.CounterTypeName:
-		value, err := h.store.GetCounter(params["name"])
+		value, err := h.store.GetCounter(r.Context(), params["name"])
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -93,7 +93,7 @@ func (h GetMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	switch m.Type {
 	case metrics.GaugeTypeName:
-		value, err := h.store.GetGauge(m.Name)
+		value, err := h.store.GetGauge(r.Context(), m.Name)
 		if err != nil {
 			log.Println(err.Error())
 			w.WriteHeader(http.StatusNotFound)
@@ -102,7 +102,7 @@ func (h GetMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		m.Value = &value
 
 	case metrics.CounterTypeName:
-		value, err := h.store.GetCounter(m.Name)
+		value, err := h.store.GetCounter(r.Context(), m.Name)
 		if err != nil {
 			log.Println(err.Error())
 			w.WriteHeader(http.StatusNotFound)

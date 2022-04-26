@@ -36,8 +36,8 @@ func NewMetricsServer(config *ServerConfig) (MetricsServer, error) {
 	var str storage.MetricsStorage
 
 	switch true {
-	case config.DatabaseDSN != "":
-		str, err = storage.NewDatabaseStorage(context.TODO(), config.DatabaseDSN)
+	case config.DSN != "":
+		str, err = storage.NewDatabaseStorage(config.DSN, config.DBConnTimeout)
 		if err != nil {
 			return MetricsServer{}, err
 		}
@@ -74,7 +74,7 @@ func (s MetricsServer) Run(err chan<- error) {
 }
 
 func (s MetricsServer) Stop() error {
-	return s.str.ShutDown()
+	return s.str.ShutDown(context.TODO())
 }
 
 func NewRouter(str storage.MetricsStorage, hasher hash.Hash) *mux.Router {
@@ -123,7 +123,7 @@ func gzipEncode(next http.Handler) http.Handler {
 
 func pingHandler(store storage.MetricsStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := store.Ping()
+		err := store.Ping(r.Context())
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

@@ -24,7 +24,7 @@ func NewHomeHandler(storage storage.MetricsGetter) HomeHandler {
 	}
 }
 
-func (h HomeHandler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
+func (h HomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	tpl, err := template.ParseFS(templates, "templates/home.gohtml")
 	if err != nil {
 		fmt.Println("Template not found: " + err.Error())
@@ -35,7 +35,7 @@ func (h HomeHandler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Add("Content-type", "text/html")
 	viewData := struct {
 		Metrics []metrics.Metric
-	}{Metrics: h.store.GetAllMetrics(false)}
+	}{Metrics: h.store.GetAllMetrics(r.Context(), false)}
 
 	if err := tpl.Execute(w, viewData); err != nil {
 		fmt.Println("Failed to execute template: " + err.Error())
