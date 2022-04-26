@@ -2,6 +2,7 @@ package internal
 
 import (
 	"bytes"
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/json"
@@ -67,53 +68,75 @@ func (c *Agent) Stop() {
 }
 
 func (c *Agent) poll() {
-	log.Println("Polling metrics")
+	var err error
+
+	gauges := make(map[string]metrics.Gauge)
+	counters := make(map[string]metrics.Counter)
 	m := &runtime.MemStats{}
+	ctx := context.TODO()
+
+	log.Println("Polling metrics")
 	runtime.ReadMemStats(m)
 
-	c.storage.SetGauge(metrics.Alloc, metrics.Gauge(m.Alloc))
-	c.storage.SetGauge(metrics.BuckHashSys, metrics.Gauge(m.BuckHashSys))
-	c.storage.SetGauge(metrics.Frees, metrics.Gauge(m.Frees))
-	c.storage.SetGauge(metrics.GCCPUFraction, metrics.Gauge(m.GCCPUFraction))
-	c.storage.SetGauge(metrics.GCSys, metrics.Gauge(m.GCSys))
-	c.storage.SetGauge(metrics.HeapAlloc, metrics.Gauge(m.HeapAlloc))
-	c.storage.SetGauge(metrics.HeapIdle, metrics.Gauge(m.HeapIdle))
-	c.storage.SetGauge(metrics.HeapInuse, metrics.Gauge(m.HeapInuse))
-	c.storage.SetGauge(metrics.HeapObjects, metrics.Gauge(m.HeapObjects))
-	c.storage.SetGauge(metrics.HeapReleased, metrics.Gauge(m.HeapReleased))
-	c.storage.SetGauge(metrics.HeapSys, metrics.Gauge(m.HeapSys))
-	c.storage.SetGauge(metrics.LastGC, metrics.Gauge(m.LastGC))
-	c.storage.SetGauge(metrics.Lookups, metrics.Gauge(m.Lookups))
-	c.storage.SetGauge(metrics.MCacheInuse, metrics.Gauge(m.MCacheInuse))
-	c.storage.SetGauge(metrics.MCacheSys, metrics.Gauge(m.MCacheSys))
-	c.storage.SetGauge(metrics.MSpanInuse, metrics.Gauge(m.MSpanInuse))
-	c.storage.SetGauge(metrics.MSpanSys, metrics.Gauge(m.MSpanSys))
-	c.storage.SetGauge(metrics.Mallocs, metrics.Gauge(m.Mallocs))
-	c.storage.SetGauge(metrics.NextGC, metrics.Gauge(m.NextGC))
-	c.storage.SetGauge(metrics.NumForcedGC, metrics.Gauge(m.NumForcedGC))
-	c.storage.SetGauge(metrics.NumGC, metrics.Gauge(m.NumGC))
-	c.storage.SetGauge(metrics.OtherSys, metrics.Gauge(m.OtherSys))
-	c.storage.SetGauge(metrics.PauseTotalNs, metrics.Gauge(m.PauseTotalNs))
-	c.storage.SetGauge(metrics.StackInuse, metrics.Gauge(m.StackInuse))
-	c.storage.SetGauge(metrics.StackSys, metrics.Gauge(m.StackSys))
-	c.storage.SetGauge(metrics.Sys, metrics.Gauge(m.Sys))
-	c.storage.SetGauge(metrics.TotalAlloc, metrics.Gauge(m.TotalAlloc))
-	c.storage.SetGauge(metrics.RandomValue, metrics.Gauge(rand.Intn(100)))
-	c.storage.SetGauge(metrics.StaticGauge, 100)
+	gauges[metrics.Alloc] = metrics.Gauge(m.Alloc)
+	gauges[metrics.BuckHashSys] = metrics.Gauge(m.BuckHashSys)
+	gauges[metrics.Frees] = metrics.Gauge(m.Frees)
+	gauges[metrics.GCCPUFraction] = metrics.Gauge(m.GCCPUFraction)
+	gauges[metrics.GCSys] = metrics.Gauge(m.GCSys)
+	gauges[metrics.HeapAlloc] = metrics.Gauge(m.HeapAlloc)
+	gauges[metrics.HeapIdle] = metrics.Gauge(m.HeapIdle)
+	gauges[metrics.HeapInuse] = metrics.Gauge(m.HeapInuse)
+	gauges[metrics.HeapObjects] = metrics.Gauge(m.HeapObjects)
+	gauges[metrics.HeapReleased] = metrics.Gauge(m.HeapReleased)
+	gauges[metrics.HeapSys] = metrics.Gauge(m.HeapSys)
+	gauges[metrics.LastGC] = metrics.Gauge(m.LastGC)
+	gauges[metrics.Lookups] = metrics.Gauge(m.Lookups)
+	gauges[metrics.MCacheInuse] = metrics.Gauge(m.MCacheInuse)
+	gauges[metrics.MCacheSys] = metrics.Gauge(m.MCacheSys)
+	gauges[metrics.MSpanInuse] = metrics.Gauge(m.MSpanInuse)
+	gauges[metrics.MSpanSys] = metrics.Gauge(m.MSpanSys)
+	gauges[metrics.Mallocs] = metrics.Gauge(m.Mallocs)
+	gauges[metrics.NextGC] = metrics.Gauge(m.NextGC)
+	gauges[metrics.NumForcedGC] = metrics.Gauge(m.NumForcedGC)
+	gauges[metrics.NumGC] = metrics.Gauge(m.NumGC)
+	gauges[metrics.OtherSys] = metrics.Gauge(m.OtherSys)
+	gauges[metrics.PauseTotalNs] = metrics.Gauge(m.PauseTotalNs)
+	gauges[metrics.StackInuse] = metrics.Gauge(m.StackInuse)
+	gauges[metrics.StackSys] = metrics.Gauge(m.StackSys)
+	gauges[metrics.Sys] = metrics.Gauge(m.Sys)
+	gauges[metrics.TotalAlloc] = metrics.Gauge(m.TotalAlloc)
+	gauges[metrics.RandomValue] = metrics.Gauge(rand.Intn(100))
 
-	c.storage.IncCounter(metrics.PollCount, 1)
+	counters[metrics.PollCount] = 1
+
+	for name, value := range gauges {
+		err = c.storage.SetGauge(ctx, name, value)
+		if err != nil {
+			log.Println(fmt.Sprintf("Failed to set gauge %s: %s", name, err.Error()))
+		}
+	}
+
+	for name, value := range counters {
+		err = c.storage.IncCounter(ctx, name, value)
+		if err != nil {
+			log.Println(fmt.Sprintf("Failed to inc counter %s: %s", name, err.Error()))
+		}
+	}
 }
 
 func (c *Agent) report() {
+	ctx := context.TODO()
 	log.Println("Sending metrics")
-	mtrcs := c.storage.GetAllMetrics(true)
+	mtrcs, _ := c.storage.GetAllMetrics(ctx, true)
 
 	for _, m := range mtrcs {
 		err := c.sendReportRequest(m)
 		if err != nil {
 			log.Println("Error occurred while reporting " + m.Name + " metric:" + err.Error())
 			if m.IsCounter() {
-				c.storage.IncCounter(m.Name, *m.Delta)
+				if err := c.storage.IncCounter(ctx, m.Name, *m.Delta); err != nil {
+					log.Println(fmt.Sprintf("Failed to inc counter %s: %s", m.Name, err.Error()))
+				}
 			}
 			continue
 		}
