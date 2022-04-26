@@ -4,11 +4,11 @@ import (
 	"embed"
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 
-	"github.com/vleukhin/prom-light/internal/storage"
-
 	"github.com/vleukhin/prom-light/internal/metrics"
+	"github.com/vleukhin/prom-light/internal/storage"
 )
 
 //go:embed templates
@@ -33,12 +33,18 @@ func (h HomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Add("Content-type", "text/html")
+	data, err := h.store.GetAllMetrics(r.Context(), false)
+	if err != nil {
+		log.Println("Failed to get metrics: " + err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	viewData := struct {
 		Metrics []metrics.Metric
-	}{Metrics: h.store.GetAllMetrics(r.Context(), false)}
+	}{Metrics: data}
 
 	if err := tpl.Execute(w, viewData); err != nil {
-		fmt.Println("Failed to execute template: " + err.Error())
+		log.Println("Failed to execute template: " + err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

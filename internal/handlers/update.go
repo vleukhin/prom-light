@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"hash"
 	"io/ioutil"
 	"log"
@@ -46,16 +47,24 @@ func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		log.Printf("Received gauge %s with value %.3f \n", params["name"], value)
-		h.store.SetGauge(r.Context(), params["name"], metrics.Gauge(value))
+		err = h.store.SetGauge(r.Context(), params["name"], metrics.Gauge(value))
+		if err != nil {
+			log.Println(fmt.Sprintf("Failed to set gauge %s: %s", params["name"], err.Error()))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	case metrics.CounterTypeName:
 		value, err := strconv.ParseInt(params["value"], 10, 64)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		log.Printf("Received counter %s with value %d \n", params["name"], value)
-		h.store.IncCounter(r.Context(), params["name"], metrics.Counter(value))
+		err = h.store.IncCounter(r.Context(), params["name"], metrics.Counter(value))
+		if err != nil {
+			log.Println(fmt.Sprintf("Failed to inc counter %s: %s", params["name"], err.Error()))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		return
@@ -78,7 +87,6 @@ func (h UpdateMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	log.Println("UPDATE JSON metrics: " + string(body))
 	err = json.Unmarshal(body, &m)
 	if err != nil {
 		log.Println("Failed to parse JSON: " + err.Error())
@@ -94,13 +102,31 @@ func (h UpdateMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 
 	switch m.Type {
 	case metrics.GaugeTypeName:
-		if m.Value != nil {
-			h.store.SetGauge(r.Context(), m.Name, *m.Value)
+		if m.Value == nil {
+			log.Println("Invalid gauge value")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		err := h.store.SetGauge(r.Context(), m.Name, *m.Value)
+		if err != nil {
+			log.Println(fmt.Sprintf("Failed to set gauge %s: %s", m.Name, err.Error()))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 
 	case metrics.CounterTypeName:
-		if m.Delta != nil {
-			h.store.IncCounter(r.Context(), m.Name, *m.Delta)
+		if m.Delta == nil {
+			log.Println("Invalid counter value")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		err := h.store.IncCounter(r.Context(), m.Name, *m.Delta)
+		if err != nil {
+			log.Println(fmt.Sprintf("Failed to inc counter %s: %s", m.Name, err.Error()))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 	}
 }

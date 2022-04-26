@@ -132,7 +132,7 @@ func pingHandler(store storage.MetricsStorage) http.HandlerFunc {
 }
 
 func (s MetricsServer) migrate() error {
-	store, ok := s.str.(storage.DatabaseStorage)
+	store, ok := s.str.(*storage.DatabaseStorage)
 	if !ok {
 		return nil
 	}

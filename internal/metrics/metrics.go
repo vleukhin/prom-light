@@ -52,7 +52,6 @@ const (
 	TotalAlloc    = "TotalAlloc"
 	RandomValue   = "RandomValue"
 	PollCount     = "PollCount"
-	StaticGauge   = "StaticGauge"
 )
 
 func (m Metric) IsCounter() bool {
