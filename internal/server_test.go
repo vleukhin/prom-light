@@ -2,6 +2,7 @@ package internal
 
 import (
 	"bytes"
+	"context"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -93,7 +94,7 @@ func TestUpdateMetricHandler_ServeHTTP(t *testing.T) {
 			},
 		},
 		{
-			name: "POST none value to coutner",
+			name: "POST none value to counter",
 			request: requestOptions{
 				URI:    "/update/counter/testCounter/none",
 				method: http.MethodPost,
@@ -211,14 +212,15 @@ func TestGetMetricHandler_ServeHTTP(t *testing.T) {
 	mockStorage := storage.NewMockStorage()
 	testServer := httptest.NewServer(NewRouter(mockStorage, nil))
 	defer testServer.Close()
+	ctx := context.Background()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			for name, value := range tt.metrics.gauges {
-				mockStorage.SetGauge(nil, name, value)
+				_ = mockStorage.SetGauge(ctx, name, value)
 			}
 			for name, value := range tt.metrics.counters {
-				mockStorage.IncCounter(nil, name, value)
+				_ = mockStorage.IncCounter(ctx, name, value)
 			}
 
 			req, err := http.NewRequest(tt.request.method, testServer.URL+tt.request.URI, nil)
@@ -242,7 +244,7 @@ func TestGetMetricHandler_ServeHTTP(t *testing.T) {
 
 func TestHomeHandler_ServeHTTP(t *testing.T) {
 	mockStorage := storage.NewMockStorage()
-	mockStorage.IncCounter(nil, "foo", 1)
+	_ = mockStorage.IncCounter(context.Background(), "foo", 1)
 	testServer := httptest.NewServer(NewRouter(mockStorage, nil))
 	req, err := http.NewRequest(http.MethodGet, testServer.URL, nil)
 	require.NoError(t, err)
@@ -374,6 +376,8 @@ func TestGetMetricJSONHandler_ServeHTTP(t *testing.T) {
 		},
 	}
 
+	ctx := context.Background()
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockStorage := storage.NewMockStorage()
@@ -381,10 +385,10 @@ func TestGetMetricJSONHandler_ServeHTTP(t *testing.T) {
 			defer testServer.Close()
 
 			for name, value := range tt.metrics.gauges {
-				mockStorage.SetGauge(nil, name, value)
+				_ = mockStorage.SetGauge(ctx, name, value)
 			}
 			for name, value := range tt.metrics.counters {
-				mockStorage.IncCounter(nil, name, value)
+				_ = mockStorage.IncCounter(ctx, name, value)
 			}
 
 			req, err := http.NewRequest(http.MethodPost, testServer.URL+"/value/", bytes.NewBuffer(tt.payload))
