@@ -6,11 +6,11 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"hash"
-	"log"
 	"net/http"
 	"strings"
 
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog/log"
 
 	"github.com/vleukhin/prom-light/internal/handlers"
 	"github.com/vleukhin/prom-light/internal/storage"
@@ -69,7 +69,7 @@ func NewMetricsServer(config *ServerConfig) (MetricsServer, error) {
 }
 
 func (s MetricsServer) Run(err chan<- error) {
-	log.Println("Metrics server listen at: " + s.cfg.Addr)
+	log.Info().Msg("Metrics server listen at: " + s.cfg.Addr)
 	err <- http.ListenAndServe(s.cfg.Addr, NewRouter(s.str, s.hasher))
 }
 
@@ -107,14 +107,14 @@ func gzipEncode(next http.Handler) http.Handler {
 
 		gz, err := gzip.NewWriterLevel(w, gzip.BestCompression)
 		if err != nil {
-			log.Println("Failed to create gzip writer: " + err.Error())
+			log.Error().Msg("Failed to create gzip writer: " + err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		defer func(gz *gzip.Writer) {
 			err := gz.Close()
 			if err != nil {
-				log.Println("Failed to close gzip writer: " + err.Error())
+				log.Error().Msg("Failed to close gzip writer: " + err.Error())
 			}
 		}(gz)
 

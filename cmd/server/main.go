@@ -1,10 +1,12 @@
 package main
 
 import (
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
 	"github.com/vleukhin/prom-light/internal"
 )
@@ -12,12 +14,21 @@ import (
 func main() {
 	cfg := &internal.ServerConfig{}
 	if err := cfg.Init(); err != nil {
-		log.Fatal(err.Error())
+		log.Fatal().Msg(err.Error())
+		os.Exit(1)
 	}
+
+	logLevel, err := zerolog.ParseLevel(cfg.LogLevel)
+	if err != nil {
+		log.Fatal().Msg(err.Error())
+		os.Exit(1)
+	}
+
+	zerolog.SetGlobalLevel(logLevel)
 
 	server, err := internal.NewMetricsServer(cfg)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fatal().Msg(err.Error())
 	}
 
 	errChan := make(chan error)
@@ -36,10 +47,10 @@ func main() {
 
 	select {
 	case <-sigChan:
-		log.Println("Terminating...")
+		log.Info().Msg("Terminating...")
 		os.Exit(0)
 	case err := <-errChan:
-		log.Println("Server error: " + err.Error())
+		log.Error().Msg("Server error: " + err.Error())
 		os.Exit(1)
 	}
 }

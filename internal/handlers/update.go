@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"hash"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog/log"
 
 	"github.com/vleukhin/prom-light/internal/metrics"
 	"github.com/vleukhin/prom-light/internal/storage"
@@ -62,15 +62,16 @@ func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+		log.Debug().Msgf("Received gauge %s with value %.3f \n", params["name"], rawValue)
 		value := metrics.Gauge(rawValue)
 		m.Value = &value
 	case metrics.CounterTypeName:
 		rawValue, err := strconv.ParseInt(params["value"], 10, 64)
-
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+		log.Debug().Msgf("Received counter %s with value %d \n", params["name"], rawValue)
 		value := metrics.Counter(rawValue)
 		m.Delta = &value
 	default:
@@ -80,7 +81,7 @@ func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	err := h.store.SetMetric(r.Context(), m)
 	if err != nil {
-		log.Println(err.Error())
+		log.Error().Msg(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -97,27 +98,29 @@ func (h UpdateMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Println(err.Error())
+		log.Error().Msg(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
+	log.Debug().Msg("UPDATE JSON metrics: " + string(body))
+
 	err = json.Unmarshal(body, &m)
 	if err != nil {
-		log.Println("Failed to parse JSON: " + err.Error())
+		log.Error().Msg("Failed to parse JSON: " + err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	if !m.IsValid(h.hasher) {
-		log.Println("Invalid hash in metric " + m.Name)
+		log.Error().Msg("Invalid hash in metric " + m.Name)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	err = h.store.SetMetric(r.Context(), m)
 	if err != nil {
-		log.Println(err.Error())
+		log.Error().Msg(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -129,27 +132,29 @@ func (h UpdateMetricsBatchHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Println(err.Error())
+		log.Error().Msg(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
+	log.Debug().Msg("UPDATE BATCH JSON metrics: " + string(body))
+
 	err = json.Unmarshal(body, &mtrcs)
 	if err != nil {
-		log.Println("Failed to parse JSON: " + err.Error())
+		log.Error().Msg("Failed to parse JSON: " + err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	if !mtrcs.IsValid(h.hasher) {
-		log.Println("Invalid hash")
+		log.Error().Msg("Invalid hash")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	err = h.store.SetMetrics(r.Context(), mtrcs)
 	if err != nil {
-		log.Println(err.Error())
+		log.Error().Msg(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
