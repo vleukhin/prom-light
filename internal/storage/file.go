@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"log"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/vleukhin/prom-light/internal/metrics"
 )
@@ -54,7 +55,7 @@ func NewFileStorage(fileName string, storeInterval time.Duration, restore bool) 
 				<-storage.storeTicker.C
 				err := storage.StoreData()
 				if err != nil {
-					log.Println("Failed to store data to file: " + err.Error())
+					log.Error().Msg("Failed to store data to file: " + err.Error())
 				}
 			}
 		}()
@@ -66,7 +67,7 @@ func NewFileStorage(fileName string, storeInterval time.Duration, restore bool) 
 func (s *fileStorage) openFile() (*os.File, error) {
 	f, err := os.OpenFile(s.fileName, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
-		log.Println("Failed to open file ")
+		log.Error().Msg("Failed to open file: " + s.fileName)
 	}
 
 	return f, err
@@ -90,7 +91,7 @@ func (s *fileStorage) StoreData() error {
 	if err != nil {
 		return err
 	} else {
-		log.Println("Data stored to file successfully")
+		log.Info().Msg("Data stored to file successfully")
 	}
 
 	return nil
@@ -107,7 +108,7 @@ func (s *fileStorage) RestoreData() error {
 	}
 	err = json.NewDecoder(f).Decode(&data)
 	if err != nil && err != io.EOF {
-		log.Println("Failed to restore data")
+		log.Error().Msg("Failed to restore data")
 		return err
 	}
 
@@ -125,7 +126,7 @@ func (s *fileStorage) RestoreData() error {
 		}
 	}
 
-	log.Println("Data restored from file successfully")
+	log.Info().Msg("Data restored from file successfully")
 
 	return nil
 }

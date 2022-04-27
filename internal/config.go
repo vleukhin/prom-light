@@ -16,6 +16,7 @@ type ServerConfig struct {
 	Key           string        `env:"KEY"`
 	DSN           string        `env:"DATABASE_DSN"`
 	DBConnTimeout time.Duration `env:"DB_CONN_TIMEOUT" envDefault:"5s"`
+	LogLevel      string        `env:"LOG_LEVEL" envDefault:"warn"`
 }
 
 type AgentConfig struct {
@@ -25,6 +26,7 @@ type AgentConfig struct {
 	ServerAddr     string        `env:"ADDRESS"         envDefault:"localhost:8080"`
 	Key            string        `env:"KEY"`
 	BatchMode      bool          `env:"BATCH_MODE" envDefault:"true"`
+	LogLevel       string        `env:"LOG_LEVEL" envDefault:"warn"`
 }
 
 func (cfg *ServerConfig) Init() error {
@@ -39,6 +41,7 @@ func (cfg *ServerConfig) Init() error {
 	storeFile := pflag.StringP("file", "f", cfg.StoreFile, "Path for file storage. Empty value disables file storage")
 	key := pflag.StringP("key", "k", cfg.Key, "Secret key for signing data")
 	dsn := pflag.StringP("database-dsn", "d", cfg.DSN, "Database connection string")
+	logLevel := pflag.StringP("log-level", "l", cfg.LogLevel, "Setup log level")
 
 	pflag.Parse()
 
@@ -48,6 +51,7 @@ func (cfg *ServerConfig) Init() error {
 	cfg.StoreFile = *storeFile
 	cfg.Key = *key
 	cfg.DSN = *dsn
+	cfg.LogLevel = *logLevel
 
 	return nil
 }
@@ -64,6 +68,7 @@ func (cfg *AgentConfig) Init() error {
 	reportTimeout := pflag.DurationP("report-timeout", "t", cfg.ReportTimeout, "Report timeout")
 	key := pflag.StringP("key", "k", cfg.Key, "Secret key for signing data")
 	batch := pflag.BoolP("batch", "b", cfg.BatchMode, "Report metrics in batches")
+	logLevel := pflag.StringP("log-level", "l", cfg.LogLevel, "Setup log level")
 
 	pflag.Parse()
 
@@ -73,6 +78,7 @@ func (cfg *AgentConfig) Init() error {
 	cfg.ReportTimeout = *reportTimeout
 	cfg.Key = *key
 	cfg.BatchMode = *batch
+	cfg.LogLevel = *logLevel
 
 	return nil
 }

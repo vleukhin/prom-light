@@ -9,12 +9,13 @@ import (
 	"errors"
 	"fmt"
 	"hash"
-	"log"
 	"math/rand"
 	"net/http"
 	"runtime"
 	"strconv"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/vleukhin/prom-light/internal/metrics"
 	"github.com/vleukhin/prom-light/internal/storage"
@@ -73,7 +74,7 @@ func (c *Agent) poll() {
 	m := &runtime.MemStats{}
 	ctx := context.TODO()
 
-	log.Println("Polling metrics")
+	log.Info().Msg("Polling metrics")
 	runtime.ReadMemStats(m)
 
 	gauges[metrics.Alloc] = metrics.Gauge(m.Alloc)
@@ -131,27 +132,27 @@ func (c *Agent) poll() {
 	}
 
 	if err := c.storage.SetMetrics(ctx, mtrcs); err != nil {
-		log.Println("Failed to set metrics in storage")
+		log.Error().Msg("Failed to set metrics in storage")
 	}
 }
 
 func (c *Agent) report() {
 	ctx := context.TODO()
-	log.Println("Sending metrics")
+	log.Info().Msg("Sending metrics")
 	mtrcs, err := c.storage.GetAllMetrics(ctx, true)
 	if err != nil {
-		log.Println("Failed to get metrics")
+		log.Error().Msg("Failed to get metrics")
 		return
 	}
 
 	if c.cfg.BatchMode {
 		err := c.sendReportBatchRequest(mtrcs)
 		if err != nil {
-			log.Println("Error occurred while reporting batch of metrics:" + err.Error())
+			log.Error().Msg("Error occurred while reporting batch of metrics:" + err.Error())
 			for _, m := range mtrcs {
 				if m.IsCounter() {
 					if err := c.storage.SetMetric(ctx, m); err != nil {
-						log.Println(fmt.Sprintf("Failed to inc counter %s: %s", m.Name, err.Error()))
+						log.Error().Msg(fmt.Sprintf("Failed to inc counter %s: %s", m.Name, err.Error()))
 					}
 				}
 			}
@@ -160,10 +161,10 @@ func (c *Agent) report() {
 		for _, m := range mtrcs {
 			err := c.sendReportRequest(m)
 			if err != nil {
-				log.Println("Error occurred while reporting " + m.Name + " metric:" + err.Error())
+				log.Error().Msg("Error occurred while reporting " + m.Name + " metric:" + err.Error())
 				if m.IsCounter() {
 					if err := c.storage.SetMetric(ctx, m); err != nil {
-						log.Println(fmt.Sprintf("Failed to inc counter %s: %s", m.Name, err.Error()))
+						log.Error().Msg(fmt.Sprintf("Failed to inc counter %s: %s", m.Name, err.Error()))
 					}
 				}
 				continue
