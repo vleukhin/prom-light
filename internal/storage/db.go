@@ -67,7 +67,7 @@ const getAllMetricsSQL = `SELECT name, type, value  FROM metrics order by id`
 // language=PostgreSQL
 const resetCountersSQL = `UPDATE metrics SET value = 0 WHERE type = 'counter'`
 
-func (s *DatabaseStorage) GetAllMetrics(ctx context.Context, resetCounters bool) ([]metrics.Metric, error) {
+func (s *DatabaseStorage) GetAllMetrics(ctx context.Context, resetCounters bool) (metrics.Metrics, error) {
 	if resetCounters {
 		s.mutex.Lock()
 		defer s.mutex.Unlock()
@@ -119,9 +119,40 @@ const setGaugeSQL = `
 	SET value = excluded.value
 `
 
-func (s *DatabaseStorage) SetGauge(ctx context.Context, metricName string, value metrics.Gauge) error {
-	_, err := s.conn.Exec(ctx, setGaugeSQL, metricName, metrics.GaugeTypeName, value)
+func (s *DatabaseStorage) SetMetric(ctx context.Context, m metrics.Metric) error {
+	var err error
+	switch m.Type {
+	case metrics.GaugeTypeName:
+		if m.Value == nil {
+			return errors.New("nil gauge value")
+		}
+		_, err = s.conn.Exec(ctx, setGaugeSQL, m.Name, metrics.GaugeTypeName, *m.Value)
+	case metrics.CounterTypeName:
+		if m.Delta == nil {
+			return errors.New("nil counter value")
+		}
+		_, err = s.conn.Exec(ctx, incCounterSQL, m.Name, metrics.CounterTypeName, *m.Delta)
+	}
+
 	return err
+}
+func (s *DatabaseStorage) SetMetrics(ctx context.Context, mtrcs metrics.Metrics) error {
+	tx, err := s.conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, m := range mtrcs {
+		if err := s.SetMetric(ctx, m); err != nil {
+			txErr := tx.Rollback(ctx)
+			if txErr != nil {
+				return txErr
+			}
+			return err
+		}
+	}
+
+	return tx.Commit(ctx)
 }
 
 // language=PostgreSQL

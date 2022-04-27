@@ -17,7 +17,7 @@ func makeGaugePointer(i float64) *Gauge {
 	return &g
 }
 
-func TestMetrics_Sign(t *testing.T) {
+func TestMetric_Sign(t *testing.T) {
 	tests := []struct {
 		name     string
 		metric   Metric

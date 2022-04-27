@@ -142,8 +142,8 @@ func (s *fileStorage) ShutDown(_ context.Context) error {
 	return nil
 }
 
-func (s *fileStorage) SetGauge(ctx context.Context, metricName string, value metrics.Gauge) error {
-	if err := s.memStorage.SetGauge(ctx, metricName, value); err != nil {
+func (s *fileStorage) SetMetrics(ctx context.Context, mtrcs metrics.Metrics) error {
+	if err := s.memStorage.SetMetrics(ctx, mtrcs); err != nil {
 		return err
 	}
 	if s.syncMode {
@@ -153,9 +153,8 @@ func (s *fileStorage) SetGauge(ctx context.Context, metricName string, value met
 	}
 	return nil
 }
-
-func (s *fileStorage) IncCounter(ctx context.Context, metricName string, value metrics.Counter) error {
-	if err := s.memStorage.IncCounter(ctx, metricName, value); err != nil {
+func (s *fileStorage) SetMetric(ctx context.Context, m metrics.Metric) error {
+	if err := s.memStorage.SetMetric(ctx, m); err != nil {
 		return err
 	}
 	if s.syncMode {
@@ -174,7 +173,7 @@ func (s *fileStorage) GetCounter(ctx context.Context, metricName string) (metric
 	return s.memStorage.GetCounter(ctx, metricName)
 }
 
-func (s *fileStorage) GetAllMetrics(ctx context.Context, resetCounters bool) ([]metrics.Metric, error) {
+func (s *fileStorage) GetAllMetrics(ctx context.Context, resetCounters bool) (metrics.Metrics, error) {
 	return s.memStorage.GetAllMetrics(ctx, resetCounters)
 }
 

@@ -98,3 +98,22 @@ func (m *Metric) Sign(hasher hash.Hash) {
 func (m Metric) IsValid(hasher hash.Hash) bool {
 	return m.Hash == makeHash(m, hasher)
 }
+
+func (m Metrics) IsValid(hasher hash.Hash) bool {
+	for _, i := range m {
+		if !i.IsValid(hasher) {
+			return false
+		}
+	}
+	return true
+}
+
+func (m Metrics) Sign(hasher hash.Hash) Metrics {
+	result := make(Metrics, len(m))
+	for i, metric := range m {
+		metric.Sign(hasher)
+		result[i] = metric
+	}
+
+	return result
+}
