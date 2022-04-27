@@ -330,6 +330,77 @@ func TestUpdateMetricJSONHandler_ServeHTTP(t *testing.T) {
 	}
 }
 
+func TestBatchUpdateMetricJSONHandler_ServeHTTP(t *testing.T) {
+	type want struct {
+		code    int
+		metrics metrics.Metrics
+	}
+
+	var testCounter metrics.Counter = 5
+	var testGauge metrics.Gauge = 5.5
+
+	var tests = []struct {
+		name    string
+		payload []byte
+		want    want
+	}{
+		{
+			name:    "Bad request",
+			payload: []byte("test"),
+			want: want{
+				code: http.StatusBadRequest,
+			},
+		},
+		{
+			name:    "Batch",
+			payload: []byte(`[{"id":"TestCounter","type":"counter","delta":5},{"id":"TestGauge","type":"gauge","value":5.5}]`),
+			want: want{
+				code: http.StatusOK,
+				metrics: metrics.Metrics{
+					{
+						Name:  "TestCounter",
+						Type:  metrics.CounterTypeName,
+						Delta: &testCounter,
+					},
+					{
+						Name:  "TestGauge",
+						Type:  metrics.GaugeTypeName,
+						Value: &testGauge,
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockStorage := storage.NewMockStorage()
+			testServer := httptest.NewServer(NewRouter(mockStorage, nil))
+			defer testServer.Close()
+
+			req, err := http.NewRequest(http.MethodPost, testServer.URL+"/updates/", bytes.NewBuffer(tt.payload))
+			require.NoError(t, err)
+
+			response, err := http.DefaultClient.Do(req)
+			require.NoError(t, err)
+
+			defer response.Body.Close()
+			require.Equal(t, tt.want.code, response.StatusCode)
+
+			if tt.want.code == http.StatusOK {
+				for _, m := range tt.want.metrics {
+					switch m.Type {
+					case metrics.GaugeTypeName:
+						mockStorage.AssertGaugeStoredWithValue(t, m.Name, *m.Value)
+					case metrics.CounterTypeName:
+						mockStorage.AssertCounterStoredWithValue(t, m.Name, *m.Delta)
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestGetMetricJSONHandler_ServeHTTP(t *testing.T) {
 	type want struct {
 		code     int

@@ -24,6 +24,7 @@ type AgentConfig struct {
 	ReportTimeout  time.Duration `env:"REPORT_TIMEOUT"  envDefault:"1s"`
 	ServerAddr     string        `env:"ADDRESS"         envDefault:"localhost:8080"`
 	Key            string        `env:"KEY"`
+	BatchMode      bool          `env:"BATCH_MODE" envDefault:"true"`
 }
 
 func (cfg *ServerConfig) Init() error {
@@ -62,6 +63,7 @@ func (cfg *AgentConfig) Init() error {
 	reportInterval := pflag.DurationP("report-interval", "r", cfg.ReportInterval, "Report interval")
 	reportTimeout := pflag.DurationP("report-timeout", "t", cfg.ReportTimeout, "Report timeout")
 	key := pflag.StringP("key", "k", cfg.Key, "Secret key for signing data")
+	batch := pflag.BoolP("batch", "b", cfg.BatchMode, "Report metrics in batches")
 
 	pflag.Parse()
 
@@ -70,6 +72,7 @@ func (cfg *AgentConfig) Init() error {
 	cfg.ReportInterval = *reportInterval
 	cfg.ReportTimeout = *reportTimeout
 	cfg.Key = *key
+	cfg.BatchMode = *batch
 
 	return nil
 }

@@ -9,6 +9,7 @@ inc8 := ^TestIteration8$
 inc9 := ^TestIteration9$
 inc10 := ^TestIteration10$
 inc11 := ^TestIteration11$
+inc12 := ^TestIteration12$
 
 build: build-agent build-server
 
@@ -73,6 +74,15 @@ tests-inc-10:
  	-key="super-secret-key"
 tests-inc-11:
 	./devopstest -test.v -test.run=$(inc11) \
+	-source-path=. \
+ 	-binary-path=./cmd/server/server \
+ 	-agent-binary-path=./cmd/agent/agent \
+ 	-server-port=4588 \
+ 	-database-dsn='postgres://postgres:postgres@localhost:5454/praktikum?sslmode=disable' \
+ 	-file-storage-path=/tmp/devops-metrics-db-test.json \
+ 	-key="super-secret-key"
+tests-inc-12:
+	./devopstest -test.v -test.run=$(inc12) \
 	-source-path=. \
  	-binary-path=./cmd/server/server \
  	-agent-binary-path=./cmd/agent/agent \

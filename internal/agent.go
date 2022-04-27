@@ -68,8 +68,6 @@ func (c *Agent) Stop() {
 }
 
 func (c *Agent) poll() {
-	var err error
-
 	gauges := make(map[string]metrics.Gauge)
 	counters := make(map[string]metrics.Counter)
 	m := &runtime.MemStats{}
@@ -109,36 +107,67 @@ func (c *Agent) poll() {
 
 	counters[metrics.PollCount] = 1
 
-	for name, value := range gauges {
-		err = c.storage.SetGauge(ctx, name, value)
-		if err != nil {
-			log.Println(fmt.Sprintf("Failed to set gauge %s: %s", name, err.Error()))
+	mtrcs := make(metrics.Metrics, len(gauges)+len(counters))
+	var i int
+
+	for name, v := range gauges {
+		value := v
+		mtrcs[i] = metrics.Metric{
+			Name:  name,
+			Type:  metrics.GaugeTypeName,
+			Value: &value,
 		}
+		i++
 	}
 
-	for name, value := range counters {
-		err = c.storage.IncCounter(ctx, name, value)
-		if err != nil {
-			log.Println(fmt.Sprintf("Failed to inc counter %s: %s", name, err.Error()))
+	for name, v := range counters {
+		value := v
+		mtrcs[i] = metrics.Metric{
+			Name:  name,
+			Type:  metrics.CounterTypeName,
+			Delta: &value,
 		}
+		i++
+	}
+
+	if err := c.storage.SetMetrics(ctx, mtrcs); err != nil {
+		log.Println("Failed to set metrics in storage")
 	}
 }
 
 func (c *Agent) report() {
 	ctx := context.TODO()
 	log.Println("Sending metrics")
-	mtrcs, _ := c.storage.GetAllMetrics(ctx, true)
+	mtrcs, err := c.storage.GetAllMetrics(ctx, true)
+	if err != nil {
+		log.Println("Failed to get metrics")
+		return
+	}
 
-	for _, m := range mtrcs {
-		err := c.sendReportRequest(m)
+	if c.cfg.BatchMode {
+		err := c.sendReportBatchRequest(mtrcs)
 		if err != nil {
-			log.Println("Error occurred while reporting " + m.Name + " metric:" + err.Error())
-			if m.IsCounter() {
-				if err := c.storage.IncCounter(ctx, m.Name, *m.Delta); err != nil {
-					log.Println(fmt.Sprintf("Failed to inc counter %s: %s", m.Name, err.Error()))
+			log.Println("Error occurred while reporting batch of metrics:" + err.Error())
+			for _, m := range mtrcs {
+				if m.IsCounter() {
+					if err := c.storage.SetMetric(ctx, m); err != nil {
+						log.Println(fmt.Sprintf("Failed to inc counter %s: %s", m.Name, err.Error()))
+					}
 				}
 			}
-			continue
+		}
+	} else {
+		for _, m := range mtrcs {
+			err := c.sendReportRequest(m)
+			if err != nil {
+				log.Println("Error occurred while reporting " + m.Name + " metric:" + err.Error())
+				if m.IsCounter() {
+					if err := c.storage.SetMetric(ctx, m); err != nil {
+						log.Println(fmt.Sprintf("Failed to inc counter %s: %s", m.Name, err.Error()))
+					}
+				}
+				continue
+			}
 		}
 	}
 }
@@ -161,6 +190,27 @@ func (c *Agent) sendReportRequest(m metrics.Metric) error {
 	}
 	if resp.StatusCode != http.StatusOK {
 		return errors.New("bad response while reporting: " + strconv.Itoa(resp.StatusCode))
+	}
+
+	return nil
+}
+
+func (c *Agent) sendReportBatchRequest(m metrics.Metrics) error {
+	data, err := json.Marshal(m.Sign(c.hasher))
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.client.Post(fmt.Sprintf("http://%s/updates/", c.cfg.ServerAddr), "application/json", bytes.NewBuffer(data))
+	if err != nil {
+		return err
+	}
+	err = resp.Body.Close()
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("bad response while batch reporting: " + strconv.Itoa(resp.StatusCode))
 	}
 
 	return nil

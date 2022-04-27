@@ -81,6 +81,7 @@ func NewRouter(str storage.MetricsStorage, hasher hash.Hash) *mux.Router {
 	homeHandler := handlers.NewHomeHandler(str)
 	updateHandler := handlers.NewUpdateMetricHandler(str)
 	updateJSONHandler := handlers.NewUpdateMetricJSONHandler(str, hasher)
+	updateBatchHandler := handlers.NewUpdateMetricsBatchHandler(str, hasher)
 	getHandler := handlers.NewGetMetricHandler(str)
 	getJSONHandler := handlers.NewGetMetricJSONHandler(str, hasher)
 
@@ -88,6 +89,7 @@ func NewRouter(str storage.MetricsStorage, hasher hash.Hash) *mux.Router {
 	r.Use(gzipEncode)
 	r.Handle("/", homeHandler).Methods(http.MethodGet, http.MethodHead)
 	r.Handle("/update/", updateJSONHandler).Methods(http.MethodPost)
+	r.Handle("/updates/", updateBatchHandler).Methods(http.MethodPost)
 	r.Handle("/update/{type}/{name}/{value}", updateHandler).Methods(http.MethodPost)
 	r.Handle("/value/", getJSONHandler).Methods(http.MethodPost)
 	r.Handle("/value/{type}/{name}", getHandler).Methods(http.MethodGet, http.MethodHead)
