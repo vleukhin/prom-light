@@ -13,7 +13,7 @@ import (
 
 func main() {
 	cfg := &internal.ServerConfig{}
-	if err := cfg.Init(); err != nil {
+	if err := cfg.Parse(); err != nil {
 		log.Fatal().Msg(err.Error())
 		os.Exit(1)
 	}

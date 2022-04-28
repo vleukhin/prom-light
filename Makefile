@@ -36,7 +36,7 @@ tests-inc-6:
  	-binary-path=./cmd/server/server \
  	-agent-binary-path=./cmd/agent/agent \
  	-server-port=4588 \
- 	-database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
+ 	-database-dsn='postgres://postgres:postgres@localhost:5454/praktikum?sslmode=disable' \
  	-file-storage-path=/tmp/devops-metrics-db-test.json
 tests-inc-7:
 	./devopstest -test.v -test.run=$(inc7) \
@@ -44,7 +44,7 @@ tests-inc-7:
  	-binary-path=./cmd/server/server \
  	-agent-binary-path=./cmd/agent/agent \
  	-server-port=4588 \
- 	-database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
+ 	-database-dsn='postgres://postgres:postgres@localhost:5454/praktikum?sslmode=disable' \
  	-file-storage-path=/tmp/devops-metrics-db-test.json
 tests-inc-8:
 	./devopstest -test.v -test.run=$(inc8) \
@@ -52,7 +52,7 @@ tests-inc-8:
  	-binary-path=./cmd/server/server \
  	-agent-binary-path=./cmd/agent/agent \
  	-server-port=4588 \
- 	-database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
+ 	-database-dsn='postgres://postgres:postgres@localhost:5454/praktikum?sslmode=disable' \
  	-file-storage-path=/tmp/devops-metrics-db-test.json
 tests-inc-9:
 	./devopstest -test.v -test.run=$(inc9) \
@@ -60,7 +60,7 @@ tests-inc-9:
  	-binary-path=./cmd/server/server \
  	-agent-binary-path=./cmd/agent/agent \
  	-server-port=4588 \
- 	-database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
+ 	-database-dsn='postgres://postgres:postgres@localhost:5454/praktikum?sslmode=disable' \
  	-file-storage-path=/tmp/devops-metrics-db-test.json \
  	-key="super-secret-key"
 tests-inc-10:

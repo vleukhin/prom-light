@@ -67,7 +67,7 @@ func NewFileStorage(fileName string, storeInterval time.Duration, restore bool) 
 func (s *fileStorage) openFile() (*os.File, error) {
 	f, err := os.OpenFile(s.fileName, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
-		log.Error().Msg("Failed to open file: " + s.fileName)
+		log.Error().Str("file", s.fileName).Msg("Failed to open file")
 	}
 
 	return f, err
