@@ -2,16 +2,16 @@ package handlers
 
 import (
 	"encoding/json"
+	"hash"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strconv"
 
-	"github.com/vleukhin/prom-light/internal/storage"
-
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog/log"
 
 	"github.com/vleukhin/prom-light/internal/metrics"
+	"github.com/vleukhin/prom-light/internal/storage"
 )
 
 type UpdateMetricHandler struct {
@@ -19,7 +19,13 @@ type UpdateMetricHandler struct {
 }
 
 type UpdateMetricJSONHandler struct {
-	store storage.MetricsSetter
+	store  storage.MetricsSetter
+	hasher hash.Hash
+}
+
+type UpdateMetricsBatchHandler struct {
+	store  storage.MetricsSetter
+	hasher hash.Hash
 }
 
 func NewUpdateMetricHandler(storage storage.MetricsSetter) UpdateMetricHandler {
@@ -28,38 +34,59 @@ func NewUpdateMetricHandler(storage storage.MetricsSetter) UpdateMetricHandler {
 	}
 }
 
-func NewUpdateMetricJSONHandler(storage storage.MetricsSetter) UpdateMetricJSONHandler {
+func NewUpdateMetricJSONHandler(storage storage.MetricsSetter, hasher hash.Hash) UpdateMetricJSONHandler {
 	return UpdateMetricJSONHandler{
-		store: storage,
+		store:  storage,
+		hasher: hasher,
+	}
+}
+
+func NewUpdateMetricsBatchHandler(storage storage.MetricsSetter, hasher hash.Hash) UpdateMetricsBatchHandler {
+	return UpdateMetricsBatchHandler{
+		store:  storage,
+		hasher: hasher,
 	}
 }
 
 func (h UpdateMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
+	m := metrics.Metric{
+		Name: params["name"],
+		Type: params["type"],
+	}
 
 	switch params["type"] {
 	case metrics.GaugeTypeName:
-		value, err := strconv.ParseFloat(params["value"], 64)
+		rawValue, err := strconv.ParseFloat(params["value"], 64)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		log.Printf("Received gauge %s with value %.3f \n", params["name"], value)
-		h.store.SetGauge(params["name"], metrics.Gauge(value))
+		log.Debug().Msgf("Received gauge %s with value %.3f \n", params["name"], rawValue)
+		value := metrics.Gauge(rawValue)
+		m.Value = &value
 	case metrics.CounterTypeName:
-		value, err := strconv.ParseInt(params["value"], 10, 64)
+		rawValue, err := strconv.ParseInt(params["value"], 10, 64)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		log.Printf("Received counter %s with value %d \n", params["name"], value)
-		h.store.IncCounter(params["name"], metrics.Counter(value))
+		log.Debug().Msgf("Received counter %s with value %d \n", params["name"], rawValue)
+		value := metrics.Counter(rawValue)
+		m.Delta = &value
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}
 
-	_, err := w.Write([]byte("Updated"))
+	err := h.store.SetMetric(r.Context(), m)
+	if err != nil {
+		log.Error().Msg(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	_, err = w.Write([]byte("Updated"))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
@@ -71,28 +98,64 @@ func (h UpdateMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Println(err.Error())
+		log.Error().Msg(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	log.Println("UPDATE JSON metrics: " + string(body))
+	log.Debug().Msg("UPDATE JSON metrics: " + string(body))
+
 	err = json.Unmarshal(body, &m)
 	if err != nil {
-		log.Println("Failed to parse JSON: " + err.Error())
+		log.Error().Msg("Failed to parse JSON: " + err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	switch m.Type {
-	case metrics.GaugeTypeName:
-		if m.Value != nil {
-			h.store.SetGauge(m.Name, *m.Value)
-		}
+	if !m.IsValid(h.hasher) {
+		log.Error().Msg("Invalid hash in metric " + m.Name)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
-	case metrics.CounterTypeName:
-		if m.Delta != nil {
-			h.store.IncCounter(m.Name, *m.Delta)
-		}
+	err = h.store.SetMetric(r.Context(), m)
+	if err != nil {
+		log.Error().Msg(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h UpdateMetricsBatchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var mtrcs metrics.Metrics
+
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Error().Msg(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	log.Debug().Msg("UPDATE BATCH JSON metrics: " + string(body))
+
+	err = json.Unmarshal(body, &mtrcs)
+	if err != nil {
+		log.Error().Msg("Failed to parse JSON: " + err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if !mtrcs.IsValid(h.hasher) {
+		log.Error().Msg("Invalid hash")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err = h.store.SetMetrics(r.Context(), mtrcs)
+	if err != nil {
+		log.Error().Msg(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 }

@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"errors"
 	"sync"
 
@@ -20,25 +21,61 @@ func NewMemoryStorage() *memoryStorage {
 	}
 }
 
-func (m *memoryStorage) SetGauge(metricName string, value metrics.Gauge) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	m.gaugeMetrics[metricName] = value
+func (s *memoryStorage) SetGauge(_ context.Context, metricName string, value metrics.Gauge) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.gaugeMetrics[metricName] = value
+	return nil
 }
-func (m *memoryStorage) IncCounter(metricName string, value metrics.Counter) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	oldValue, ok := m.counterMetrics[metricName]
+func (s *memoryStorage) IncCounter(_ context.Context, metricName string, value metrics.Counter) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	oldValue, ok := s.counterMetrics[metricName]
 	if !ok {
 		oldValue = 0
 	}
-	m.counterMetrics[metricName] = oldValue + value
+	s.counterMetrics[metricName] = oldValue + value
+	return nil
 }
 
-func (m *memoryStorage) GetGauge(name string) (metrics.Gauge, error) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	value, exists := m.gaugeMetrics[name]
+func (s *memoryStorage) SetMetric(_ context.Context, m metrics.Metric) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	switch m.Type {
+	case metrics.GaugeTypeName:
+		if m.Value == nil {
+			return errors.New("nil gauge value")
+		}
+		s.gaugeMetrics[m.Name] = *m.Value
+	case metrics.CounterTypeName:
+		if m.Delta == nil {
+			return errors.New("nil counter value")
+		}
+		oldValue, ok := s.counterMetrics[m.Name]
+		if !ok {
+			oldValue = 0
+		}
+		s.counterMetrics[m.Name] = oldValue + *m.Delta
+	}
+
+	return nil
+}
+
+func (s *memoryStorage) SetMetrics(ctx context.Context, mtrcs metrics.Metrics) error {
+	for _, m := range mtrcs {
+		if err := s.SetMetric(ctx, m); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *memoryStorage) GetGauge(_ context.Context, metricName string) (metrics.Gauge, error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	value, exists := s.gaugeMetrics[metricName]
 	if !exists {
 		return 0, errors.New("unknown gauge")
 	}
@@ -46,10 +83,10 @@ func (m *memoryStorage) GetGauge(name string) (metrics.Gauge, error) {
 	return value, nil
 }
 
-func (m *memoryStorage) GetCounter(name string) (metrics.Counter, error) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	value, exists := m.counterMetrics[name]
+func (s *memoryStorage) GetCounter(_ context.Context, name string) (metrics.Counter, error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	value, exists := s.counterMetrics[name]
 	if !exists {
 		return 0, errors.New("unknown counter")
 	}
@@ -57,12 +94,12 @@ func (m *memoryStorage) GetCounter(name string) (metrics.Counter, error) {
 	return value, nil
 }
 
-func (m *memoryStorage) GetAllMetrics(resetCounters bool) []metrics.Metric {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	result := make([]metrics.Metric, len(m.gaugeMetrics)+len(m.counterMetrics))
+func (s *memoryStorage) GetAllMetrics(_ context.Context, resetCounters bool) (metrics.Metrics, error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	result := make(metrics.Metrics, len(s.gaugeMetrics)+len(s.counterMetrics))
 	var i int
-	for k, v := range m.gaugeMetrics {
+	for k, v := range s.gaugeMetrics {
 		value := v
 		result[i] = metrics.Metric{
 			Name:  k,
@@ -71,7 +108,7 @@ func (m *memoryStorage) GetAllMetrics(resetCounters bool) []metrics.Metric {
 		}
 		i++
 	}
-	for k, v := range m.counterMetrics {
+	for k, v := range s.counterMetrics {
 		value := v
 		result[i] = metrics.Metric{
 			Name:  k,
@@ -79,14 +116,20 @@ func (m *memoryStorage) GetAllMetrics(resetCounters bool) []metrics.Metric {
 			Delta: &value,
 		}
 		if resetCounters {
-			m.counterMetrics[k] = 0
+			s.counterMetrics[k] = 0
 		}
 		i++
 	}
 
-	return result
+	return result, nil
 }
 
-func (m *memoryStorage) ShutDown() {
+func (s *memoryStorage) ShutDown(_ context.Context) error {
 	// nothing to do here
+	return nil
+}
+
+func (s *memoryStorage) Ping(_ context.Context) error {
+	// nothing to do here
+	return nil
 }

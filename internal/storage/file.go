@@ -1,12 +1,14 @@
 package storage
 
 import (
+	"context"
 	"encoding/json"
 	"io"
-	"log"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/vleukhin/prom-light/internal/metrics"
 )
@@ -51,7 +53,10 @@ func NewFileStorage(fileName string, storeInterval time.Duration, restore bool) 
 		go func() {
 			for {
 				<-storage.storeTicker.C
-				storage.StoreData()
+				err := storage.StoreData()
+				if err != nil {
+					log.Error().Msg("Failed to store data to file: " + err.Error())
+				}
 			}
 		}()
 	}
@@ -62,27 +67,34 @@ func NewFileStorage(fileName string, storeInterval time.Duration, restore bool) 
 func (s *fileStorage) openFile() (*os.File, error) {
 	f, err := os.OpenFile(s.fileName, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
-		log.Println("Failed to open file ")
+		log.Error().Str("file", s.fileName).Msg("Failed to open file")
 	}
 
 	return f, err
 }
 
-func (s *fileStorage) StoreData() {
+func (s *fileStorage) StoreData() error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
 	f, err := s.openFile()
 	if err != nil {
-		return
+		return err
 	}
 
-	err = json.NewEncoder(f).Encode(s.memStorage.GetAllMetrics(false))
+	data, err := s.memStorage.GetAllMetrics(context.Background(), false)
 	if err != nil {
-		log.Println("Failed to store data to file: " + err.Error())
-	} else {
-		log.Println("Data stored to file successfully")
+		return err
 	}
+
+	err = json.NewEncoder(f).Encode(data)
+	if err != nil {
+		return err
+	} else {
+		log.Info().Msg("Data stored to file successfully")
+	}
+
+	return nil
 }
 
 func (s *fileStorage) RestoreData() error {
@@ -96,53 +108,81 @@ func (s *fileStorage) RestoreData() error {
 	}
 	err = json.NewDecoder(f).Decode(&data)
 	if err != nil && err != io.EOF {
-		log.Println("Failed to restore data")
+		log.Error().Msg("Failed to restore data")
 		return err
 	}
 
 	for _, m := range data {
 		if m.IsCounter() {
-			s.memStorage.IncCounter(m.Name, *m.Delta)
+			err := s.memStorage.IncCounter(context.Background(), m.Name, *m.Delta)
+			if err != nil {
+				return err
+			}
 		} else {
-			s.memStorage.SetGauge(m.Name, *m.Value)
+			err := s.memStorage.SetGauge(context.Background(), m.Name, *m.Value)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
-	log.Println("Data restored from file successfully")
+	log.Info().Msg("Data restored from file successfully")
 
 	return nil
 }
 
-func (s *fileStorage) ShutDown() {
-	s.StoreData()
+func (s *fileStorage) ShutDown(_ context.Context) error {
+	if err := s.StoreData(); err != nil {
+		return err
+	}
 
 	if !s.syncMode {
 		s.storeTicker.Stop()
 	}
+
+	return nil
 }
 
-func (s *fileStorage) SetGauge(metricName string, value metrics.Gauge) {
-	s.memStorage.SetGauge(metricName, value)
-	if s.syncMode {
-		s.StoreData()
+func (s *fileStorage) SetMetrics(ctx context.Context, mtrcs metrics.Metrics) error {
+	if err := s.memStorage.SetMetrics(ctx, mtrcs); err != nil {
+		return err
 	}
-}
-
-func (s *fileStorage) IncCounter(metricName string, value metrics.Counter) {
-	s.memStorage.IncCounter(metricName, value)
 	if s.syncMode {
-		s.StoreData()
+		if err := s.StoreData(); err != nil {
+			return err
+		}
 	}
+	return nil
+}
+func (s *fileStorage) SetMetric(ctx context.Context, m metrics.Metric) error {
+	if err := s.memStorage.SetMetric(ctx, m); err != nil {
+		return err
+	}
+	if s.syncMode {
+		if err := s.StoreData(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func (s *fileStorage) GetGauge(name string) (metrics.Gauge, error) {
-	return s.memStorage.GetGauge(name)
+func (s *fileStorage) GetGauge(ctx context.Context, metricName string) (metrics.Gauge, error) {
+	return s.memStorage.GetGauge(ctx, metricName)
 }
 
-func (s *fileStorage) GetCounter(name string) (metrics.Counter, error) {
-	return s.memStorage.GetCounter(name)
+func (s *fileStorage) GetCounter(ctx context.Context, metricName string) (metrics.Counter, error) {
+	return s.memStorage.GetCounter(ctx, metricName)
 }
 
-func (s *fileStorage) GetAllMetrics(resetCounters bool) []metrics.Metric {
-	return s.memStorage.GetAllMetrics(resetCounters)
+func (s *fileStorage) GetAllMetrics(ctx context.Context, resetCounters bool) (metrics.Metrics, error) {
+	return s.memStorage.GetAllMetrics(ctx, resetCounters)
+}
+
+func (s *fileStorage) Ping(context.Context) error {
+	f, err := s.openFile()
+	if err != nil {
+		return err
+	}
+
+	return f.Close()
 }

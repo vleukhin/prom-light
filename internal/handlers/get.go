@@ -3,15 +3,15 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"hash"
 	"io/ioutil"
-	"log"
 	"net/http"
 
-	"github.com/vleukhin/prom-light/internal/storage"
-
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog/log"
 
 	"github.com/vleukhin/prom-light/internal/metrics"
+	"github.com/vleukhin/prom-light/internal/storage"
 )
 
 type GetMetricHandler struct {
@@ -19,7 +19,8 @@ type GetMetricHandler struct {
 }
 
 type GetMetricJSONHandler struct {
-	store storage.MetricsGetter
+	store  storage.MetricsGetter
+	hasher hash.Hash
 }
 
 func NewGetMetricHandler(storage storage.MetricsGetter) GetMetricHandler {
@@ -28,9 +29,10 @@ func NewGetMetricHandler(storage storage.MetricsGetter) GetMetricHandler {
 	}
 }
 
-func NewGetMetricJSONHandler(storage storage.MetricsGetter) GetMetricJSONHandler {
+func NewGetMetricJSONHandler(storage storage.MetricsGetter, hasher hash.Hash) GetMetricJSONHandler {
 	return GetMetricJSONHandler{
-		store: storage,
+		store:  storage,
+		hasher: hasher,
 	}
 }
 
@@ -40,7 +42,7 @@ func (h GetMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-type", "text/html")
 	switch params["type"] {
 	case metrics.GaugeTypeName:
-		value, err := h.store.GetGauge(params["name"])
+		value, err := h.store.GetGauge(r.Context(), params["name"])
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -53,7 +55,7 @@ func (h GetMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 	case metrics.CounterTypeName:
-		value, err := h.store.GetCounter(params["name"])
+		value, err := h.store.GetCounter(r.Context(), params["name"])
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -75,39 +77,40 @@ func (h GetMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Println(err.Error())
+		log.Error().Msg(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	log.Println("GET JSON metrics: " + string(body))
+	log.Debug().Msg("GET JSON metrics: " + string(body))
 	err = json.Unmarshal(body, &m)
 	if err != nil {
-		log.Println("Failed to parse JSON: " + err.Error())
+		log.Error().Msg("Failed to parse JSON: " + err.Error())
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
 	switch m.Type {
 	case metrics.GaugeTypeName:
-		value, err := h.store.GetGauge(m.Name)
+		value, err := h.store.GetGauge(r.Context(), m.Name)
 		if err != nil {
-			log.Println(err.Error())
+			log.Error().Msg(err.Error())
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 		m.Value = &value
 
 	case metrics.CounterTypeName:
-		value, err := h.store.GetCounter(m.Name)
+		value, err := h.store.GetCounter(r.Context(), m.Name)
 		if err != nil {
-			log.Println(err.Error())
+			log.Error().Msg(err.Error())
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 		m.Delta = &value
 	}
 
+	m.Sign(h.hasher)
 	respBody, err := json.Marshal(m)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

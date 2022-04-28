@@ -1,6 +1,10 @@
 package metrics
 
-import "fmt"
+import (
+	"encoding/hex"
+	"fmt"
+	"hash"
+)
 
 type Gauge float64
 type Counter int64
@@ -10,6 +14,7 @@ type Metric struct {
 	Type  string   `json:"type"`            // параметр, принимающий значение gauge или counter
 	Delta *Counter `json:"delta,omitempty"` // значение метрики в случае передачи counter
 	Value *Gauge   `json:"value,omitempty"` // значение метрики в случае передачи gauge
+	Hash  string   `json:"hash,omitempty"`  // значение хеш-функции
 }
 
 type Metrics []Metric
@@ -65,4 +70,50 @@ func (m Metric) String() string {
 	}
 
 	return str
+}
+
+func makeHash(m Metric, hasher hash.Hash) string {
+	if hasher == nil {
+		return ""
+	}
+
+	switch m.Type {
+	case CounterTypeName:
+		hasher.Write([]byte(fmt.Sprintf("%s:counter:%d", m.Name, *m.Delta)))
+	case GaugeTypeName:
+		hasher.Write([]byte(fmt.Sprintf("%s:gauge:%f", m.Name, *m.Value)))
+	}
+
+	defer hasher.Reset()
+	return hex.EncodeToString(hasher.Sum(nil))
+}
+
+func (m *Metric) Sign(hasher hash.Hash) {
+	if hasher == nil {
+		return
+	}
+	m.Hash = makeHash(*m, hasher)
+}
+
+func (m Metric) IsValid(hasher hash.Hash) bool {
+	return m.Hash == makeHash(m, hasher)
+}
+
+func (m Metrics) IsValid(hasher hash.Hash) bool {
+	for _, i := range m {
+		if !i.IsValid(hasher) {
+			return false
+		}
+	}
+	return true
+}
+
+func (m Metrics) Sign(hasher hash.Hash) Metrics {
+	result := make(Metrics, len(m))
+	for i, metric := range m {
+		metric.Sign(hasher)
+		result[i] = metric
+	}
+
+	return result
 }
