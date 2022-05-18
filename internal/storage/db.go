@@ -64,15 +64,7 @@ func (s *DatabaseStorage) GetCounter(ctx context.Context, metricName string) (me
 // language=PostgreSQL
 const getAllMetricsSQL = `SELECT name, type, value  FROM metrics order by id`
 
-// language=PostgreSQL
-const resetCountersSQL = `UPDATE metrics SET value = 0 WHERE type = 'counter'`
-
-func (s *DatabaseStorage) GetAllMetrics(ctx context.Context, resetCounters bool) (metrics.Metrics, error) {
-	if resetCounters {
-		s.mutex.Lock()
-		defer s.mutex.Unlock()
-	}
-
+func (s *DatabaseStorage) GetAllMetrics(ctx context.Context) (metrics.Metrics, error) {
 	rows, err := s.conn.Query(ctx, getAllMetricsSQL)
 	if err != nil {
 		return nil, err
@@ -100,12 +92,6 @@ func (s *DatabaseStorage) GetAllMetrics(ctx context.Context, resetCounters bool)
 		}
 
 		result = append(result, metric)
-	}
-
-	if resetCounters {
-		if _, err := s.conn.Exec(ctx, resetCountersSQL); err != nil {
-			return nil, err
-		}
 	}
 
 	return result, nil
