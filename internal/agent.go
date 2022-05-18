@@ -52,6 +52,7 @@ func NewAgent(config *AgentConfig) Agent {
 	}
 
 	agent.pollers = append(agent.pollers, pollers.NewMemStatsPoller(config.PollInterval))
+	agent.pollers = append(agent.pollers, pollers.NewPsPoller(config.PollInterval))
 
 	return agent
 }
