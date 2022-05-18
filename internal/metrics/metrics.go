@@ -117,3 +117,18 @@ func (m Metrics) Sign(hasher hash.Hash) Metrics {
 
 	return result
 }
+
+func MakeGaugeMetric(name string, value Gauge) Metric {
+	return Metric{
+		Name:  name,
+		Type:  GaugeTypeName,
+		Value: &value,
+	}
+}
+func MakeCounterMetric(name string, delta Counter) Metric {
+	return Metric{
+		Name:  name,
+		Type:  CounterTypeName,
+		Delta: &delta,
+	}
+}
