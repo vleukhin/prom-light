@@ -13,11 +13,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/vleukhin/prom-light/internal/pollers"
-
 	"github.com/rs/zerolog/log"
 
 	"github.com/vleukhin/prom-light/internal/metrics"
+	"github.com/vleukhin/prom-light/internal/pollers"
 	"github.com/vleukhin/prom-light/internal/storage"
 )
 

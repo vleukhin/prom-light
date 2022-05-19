@@ -8,11 +8,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/vleukhin/prom-light/internal/storage"
-
 	"github.com/stretchr/testify/require"
 
 	"github.com/vleukhin/prom-light/internal/metrics"
+	"github.com/vleukhin/prom-light/internal/storage"
 )
 
 type requestOptions struct {

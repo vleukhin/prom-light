@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"errors"
-	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v4"
@@ -12,8 +11,7 @@ import (
 )
 
 type DatabaseStorage struct {
-	conn  *pgx.Conn
-	mutex sync.Mutex
+	conn *pgx.Conn
 }
 
 func NewDatabaseStorage(dsn string, connTimeout time.Duration) (*DatabaseStorage, error) {
