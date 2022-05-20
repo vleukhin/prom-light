@@ -62,8 +62,7 @@ func (c *Agent) Start() {
 		go p.Poll(metricsCh)
 	}
 
-	for {
-		<-c.reportTicker.C
+	for range c.reportTicker.C {
 		c.report(metricsCh)
 	}
 }
