@@ -33,7 +33,7 @@ func (h HomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Add("Content-type", "text/html")
-	data, err := h.store.GetAllMetrics(r.Context(), false)
+	data, err := h.store.GetAllMetrics(r.Context())
 	if err != nil {
 		log.Error().Msg("Failed to get metrics: " + err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)

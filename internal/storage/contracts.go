@@ -21,7 +21,7 @@ type MetricsStorage interface {
 type MetricsGetter interface {
 	GetGauge(ctx context.Context, metricName string) (metrics.Gauge, error)
 	GetCounter(ctx context.Context, metricName string) (metrics.Counter, error)
-	GetAllMetrics(ctx context.Context, resetCounters bool) (metrics.Metrics, error)
+	GetAllMetrics(ctx context.Context) (metrics.Metrics, error)
 }
 
 type MetricsSetter interface {

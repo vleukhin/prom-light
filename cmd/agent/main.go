@@ -25,6 +25,7 @@ func main() {
 	zerolog.SetGlobalLevel(logLevel)
 
 	agent := internal.NewAgent(cfg)
+
 	go agent.Start()
 
 	sigChan := make(chan os.Signal, 1)

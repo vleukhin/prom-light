@@ -82,7 +82,7 @@ func (s *fileStorage) StoreData() error {
 		return err
 	}
 
-	data, err := s.memStorage.GetAllMetrics(context.Background(), false)
+	data, err := s.memStorage.GetAllMetrics(context.Background())
 	if err != nil {
 		return err
 	}
@@ -174,8 +174,8 @@ func (s *fileStorage) GetCounter(ctx context.Context, metricName string) (metric
 	return s.memStorage.GetCounter(ctx, metricName)
 }
 
-func (s *fileStorage) GetAllMetrics(ctx context.Context, resetCounters bool) (metrics.Metrics, error) {
-	return s.memStorage.GetAllMetrics(ctx, resetCounters)
+func (s *fileStorage) GetAllMetrics(ctx context.Context) (metrics.Metrics, error) {
+	return s.memStorage.GetAllMetrics(ctx)
 }
 
 func (s *fileStorage) Ping(context.Context) error {
