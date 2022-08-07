@@ -10,11 +10,11 @@ import (
 	"github.com/vleukhin/prom-light/internal/metrics"
 )
 
-type DatabaseStorage struct {
+type PostgresStorage struct {
 	conn *pgxpool.Pool
 }
 
-func NewDatabaseStorage(dsn string, connTimeout time.Duration) (*DatabaseStorage, error) {
+func NewPostgresStorage(dsn string, connTimeout time.Duration) (*PostgresStorage, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), connTimeout)
 	defer cancel()
 
@@ -23,7 +23,7 @@ func NewDatabaseStorage(dsn string, connTimeout time.Duration) (*DatabaseStorage
 		return nil, err
 	}
 
-	return &DatabaseStorage{
+	return &PostgresStorage{
 		conn: conn,
 	}, nil
 }
@@ -31,7 +31,7 @@ func NewDatabaseStorage(dsn string, connTimeout time.Duration) (*DatabaseStorage
 // language=PostgreSQL
 const getMetricSQL = `SELECT value FROM metrics WHERE name = $1`
 
-func (s *DatabaseStorage) GetGauge(ctx context.Context, metricName string) (metrics.Gauge, error) {
+func (s *PostgresStorage) GetGauge(ctx context.Context, metricName string) (metrics.Gauge, error) {
 	var value float64
 
 	row := s.conn.QueryRow(ctx, getMetricSQL, metricName)
@@ -43,7 +43,7 @@ func (s *DatabaseStorage) GetGauge(ctx context.Context, metricName string) (metr
 	return metrics.Gauge(value), nil
 }
 
-func (s *DatabaseStorage) GetCounter(ctx context.Context, metricName string) (metrics.Counter, error) {
+func (s *PostgresStorage) GetCounter(ctx context.Context, metricName string) (metrics.Counter, error) {
 	var value int
 
 	row := s.conn.QueryRow(ctx, getMetricSQL, metricName)
@@ -58,7 +58,7 @@ func (s *DatabaseStorage) GetCounter(ctx context.Context, metricName string) (me
 // language=PostgreSQL
 const getAllMetricsSQL = `SELECT name, type, value  FROM metrics order by id`
 
-func (s *DatabaseStorage) GetAllMetrics(ctx context.Context) (metrics.Metrics, error) {
+func (s *PostgresStorage) GetAllMetrics(ctx context.Context) (metrics.Metrics, error) {
 	rows, err := s.conn.Query(ctx, getAllMetricsSQL)
 	if err != nil {
 		return nil, err
@@ -99,7 +99,7 @@ const setGaugeSQL = `
 	SET value = excluded.value
 `
 
-func (s *DatabaseStorage) SetMetric(ctx context.Context, m metrics.Metric) error {
+func (s *PostgresStorage) SetMetric(ctx context.Context, m metrics.Metric) error {
 	var err error
 	switch m.Type {
 	case metrics.GaugeTypeName:
@@ -116,7 +116,7 @@ func (s *DatabaseStorage) SetMetric(ctx context.Context, m metrics.Metric) error
 
 	return err
 }
-func (s *DatabaseStorage) SetMetrics(ctx context.Context, mtrcs metrics.Metrics) error {
+func (s *PostgresStorage) SetMetrics(ctx context.Context, mtrcs metrics.Metrics) error {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
@@ -143,17 +143,17 @@ const incCounterSQL = `
 	SET value = metrics.value + excluded.value
 `
 
-func (s *DatabaseStorage) IncCounter(ctx context.Context, metricName string, value metrics.Counter) error {
+func (s *PostgresStorage) IncCounter(ctx context.Context, metricName string, value metrics.Counter) error {
 	_, err := s.conn.Exec(ctx, incCounterSQL, metricName, metrics.CounterTypeName, value)
 	return err
 }
 
-func (s *DatabaseStorage) ShutDown(_ context.Context) error {
+func (s *PostgresStorage) ShutDown(_ context.Context) error {
 	s.conn.Close()
 	return nil
 }
 
-func (s *DatabaseStorage) Ping(ctx context.Context) error {
+func (s *PostgresStorage) Ping(ctx context.Context) error {
 	return s.conn.Ping(ctx)
 }
 
@@ -167,7 +167,12 @@ const createMetricsTable = `
 	)
 `
 
-func (s *DatabaseStorage) Migrate(ctx context.Context) error {
+func (s *PostgresStorage) Migrate(ctx context.Context) error {
 	_, err := s.conn.Exec(ctx, createMetricsTable)
+	return err
+}
+
+func (s *PostgresStorage) CleanUp(ctx context.Context) error {
+	_, err := s.conn.Exec(ctx, "TRUNCATE TABLE metrics")
 	return err
 }
