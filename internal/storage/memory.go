@@ -117,3 +117,11 @@ func (s *memoryStorage) Ping(_ context.Context) error {
 	// nothing to do here
 	return nil
 }
+func (s *memoryStorage) CleanUp(_ context.Context) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.gaugeMetrics = make(map[string]metrics.Gauge)
+	s.counterMetrics = make(map[string]metrics.Counter)
+
+	return nil
+}

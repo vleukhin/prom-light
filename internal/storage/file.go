@@ -174,6 +174,10 @@ func (s *fileStorage) GetCounter(ctx context.Context, metricName string) (metric
 	return s.memStorage.GetCounter(ctx, metricName)
 }
 
+func (s *fileStorage) IncCounter(ctx context.Context, metricName string, value metrics.Counter) error {
+	return nil
+}
+
 func (s *fileStorage) GetAllMetrics(ctx context.Context) (metrics.Metrics, error) {
 	return s.memStorage.GetAllMetrics(ctx)
 }
@@ -185,4 +189,8 @@ func (s *fileStorage) Ping(context.Context) error {
 	}
 
 	return f.Close()
+}
+
+func (s *fileStorage) CleanUp(_ context.Context) error {
+	return os.Truncate(s.fileName, 0)
 }

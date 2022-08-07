@@ -16,6 +16,7 @@ type MetricsStorage interface {
 	MetricsSetter
 	Ping(ctx context.Context) error
 	ShutDown(ctx context.Context) error
+	CleanUp(ctx context.Context) error
 }
 
 type MetricsGetter interface {
@@ -27,4 +28,5 @@ type MetricsGetter interface {
 type MetricsSetter interface {
 	SetMetrics(ctx context.Context, mtrcs metrics.Metrics) error
 	SetMetric(ctx context.Context, m metrics.Metric) error
+	IncCounter(ctx context.Context, metricName string, value metrics.Counter) error
 }
