@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"syscall"
@@ -25,14 +26,15 @@ func main() {
 	zerolog.SetGlobalLevel(logLevel)
 
 	agent := internal.NewAgent(cfg)
-
-	go agent.Start()
+	mainCtx, cancel := context.WithCancel(context.Background())
+	go agent.Start(mainCtx)
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Ignore(syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	<-sigChan
+	cancel()
 	log.Info().Msg("Terminating...")
 	agent.Stop()
 	os.Exit(0)

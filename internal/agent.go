@@ -2,6 +2,7 @@ package internal
 
 import (
 	"bytes"
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/json"
@@ -21,7 +22,7 @@ import (
 )
 
 type Poller interface {
-	Poll(metricCh chan<- metrics.Metrics)
+	Poll(ctx context.Context, metricCh chan<- metrics.Metrics)
 }
 
 type Agent struct {
@@ -56,10 +57,10 @@ func NewAgent(config *AgentConfig) Agent {
 	return agent
 }
 
-func (c *Agent) Start() {
+func (c *Agent) Start(ctx context.Context) {
 	metricsCh := make(chan metrics.Metrics)
 	for _, p := range c.pollers {
-		go p.Poll(metricsCh)
+		go p.Poll(ctx, metricsCh)
 	}
 
 	for range c.reportTicker.C {
