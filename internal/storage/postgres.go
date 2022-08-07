@@ -5,20 +5,20 @@ import (
 	"errors"
 	"time"
 
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 
 	"github.com/vleukhin/prom-light/internal/metrics"
 )
 
 type DatabaseStorage struct {
-	conn *pgx.Conn
+	conn *pgxpool.Pool
 }
 
 func NewDatabaseStorage(dsn string, connTimeout time.Duration) (*DatabaseStorage, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), connTimeout)
 	defer cancel()
 
-	conn, err := pgx.Connect(ctx, dsn)
+	conn, err := pgxpool.Connect(ctx, dsn)
 	if err != nil {
 		return nil, err
 	}
@@ -26,10 +26,6 @@ func NewDatabaseStorage(dsn string, connTimeout time.Duration) (*DatabaseStorage
 	return &DatabaseStorage{
 		conn: conn,
 	}, nil
-}
-
-func (s *DatabaseStorage) GetConnection() *pgx.Conn {
-	return s.conn
 }
 
 // language=PostgreSQL
@@ -152,8 +148,9 @@ func (s *DatabaseStorage) IncCounter(ctx context.Context, metricName string, val
 	return err
 }
 
-func (s *DatabaseStorage) ShutDown(ctx context.Context) error {
-	return s.conn.Close(ctx)
+func (s *DatabaseStorage) ShutDown(_ context.Context) error {
+	s.conn.Close()
+	return nil
 }
 
 func (s *DatabaseStorage) Ping(ctx context.Context) error {
