@@ -95,6 +95,8 @@ func NewRouter(str storage.MetricsStorage, hasher hash.Hash) *mux.Router {
 	r.Handle("/value/{type}/{name}", getHandler).Methods(http.MethodGet, http.MethodHead)
 	r.Handle("/ping", pingHandler(str)).Methods(http.MethodGet, http.MethodHead)
 
+	r.PathPrefix("/debug/pprof/").Handler(http.DefaultServeMux)
+
 	return r
 }
 
