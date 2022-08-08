@@ -1,21 +1,12 @@
 package pollers
 
 import (
+	"github.com/vleukhin/prom-light/internal/metrics"
 	"math/rand"
 	"runtime"
-	"time"
-
-	"github.com/vleukhin/prom-light/internal/metrics"
 )
 
 type MemStatsPoller struct {
-	ticker *time.Ticker
-}
-
-func NewMemStatsPoller(interval time.Duration) MemStatsPoller {
-	return MemStatsPoller{
-		time.NewTicker(interval),
-	}
 }
 
 func (p MemStatsPoller) Poll() metrics.Metrics {

@@ -53,8 +53,8 @@ func NewAgent(config *AgentConfig) Agent {
 		agent.hasher = hmac.New(sha256.New, []byte(config.Key))
 	}
 
-	agent.pollers = append(agent.pollers, pollers.NewMemStatsPoller(config.PollInterval))
-	agent.pollers = append(agent.pollers, pollers.NewPsPoller(config.PollInterval))
+	agent.pollers = append(agent.pollers, pollers.MemStatsPoller{})
+	agent.pollers = append(agent.pollers, pollers.PsPoller{})
 
 	return agent
 }

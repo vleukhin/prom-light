@@ -12,13 +12,6 @@ import (
 )
 
 type PsPoller struct {
-	ticker *time.Ticker
-}
-
-func NewPsPoller(interval time.Duration) PsPoller {
-	return PsPoller{
-		time.NewTicker(interval),
-	}
 }
 
 func (p PsPoller) Poll() metrics.Metrics {
