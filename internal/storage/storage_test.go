@@ -4,17 +4,18 @@ import (
 	"context"
 	"github.com/vleukhin/prom-light/internal/metrics"
 	"reflect"
+	"sort"
 	"testing"
 )
 
 func testStorage(storage MetricsStorage, t *testing.T) {
 	var metricsData = metrics.Metrics{
-		metrics.MakeGaugeMetric("Gauge1", 5.5),
-		metrics.MakeGaugeMetric("Gauge2", 0),
-		metrics.MakeGaugeMetric("Gauge3", -8),
 		metrics.MakeCounterMetric("Counter1", 0),
 		metrics.MakeCounterMetric("Counter2", 12312),
 		metrics.MakeCounterMetric("Counter3", 4444),
+		metrics.MakeGaugeMetric("Gauge1", 5.5),
+		metrics.MakeGaugeMetric("Gauge2", 0),
+		metrics.MakeGaugeMetric("Gauge3", -8),
 	}
 
 	ctx := context.Background()
@@ -63,7 +64,12 @@ func testStorage(storage MetricsStorage, t *testing.T) {
 			t.Errorf("GetAllMetrics() error = %v", err)
 			return
 		}
-
+		sort.Slice(stored, func(i, j int) bool {
+			return stored[i].Name < stored[j].Name
+		})
+		sort.Slice(stored, func(i, j int) bool {
+			return stored[i].Name < stored[j].Name
+		})
 		if !reflect.DeepEqual(stored, metricsData) {
 			t.Errorf("matching error\ngot: %v\nwant:%v\n", stored, metricsData)
 		}

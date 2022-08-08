@@ -125,3 +125,7 @@ func (s *memoryStorage) CleanUp(_ context.Context) error {
 
 	return nil
 }
+
+func (s *memoryStorage) Migrate(_ context.Context) error {
+	return nil
+}

@@ -134,10 +134,5 @@ func pingHandler(store storage.MetricsStorage) http.HandlerFunc {
 }
 
 func (s MetricsServer) migrate() error {
-	store, ok := s.str.(*storage.PostgresStorage)
-	if !ok {
-		return nil
-	}
-
-	return store.Migrate(context.TODO())
+	return s.str.Migrate(context.Background())
 }

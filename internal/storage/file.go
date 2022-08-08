@@ -14,7 +14,6 @@ import (
 )
 
 type fileStorage struct {
-	memoryStorage
 	mutex       sync.Mutex
 	fileName    string
 	syncMode    bool
@@ -175,7 +174,7 @@ func (s *fileStorage) GetCounter(ctx context.Context, metricName string) (metric
 }
 
 func (s *fileStorage) IncCounter(ctx context.Context, metricName string, value metrics.Counter) error {
-	return nil
+	return s.memStorage.IncCounter(ctx, metricName, value)
 }
 
 func (s *fileStorage) GetAllMetrics(ctx context.Context) (metrics.Metrics, error) {
@@ -192,5 +191,15 @@ func (s *fileStorage) Ping(context.Context) error {
 }
 
 func (s *fileStorage) CleanUp(_ context.Context) error {
-	return os.Truncate(s.fileName, 0)
+	err := os.Truncate(s.fileName, 0)
+	if err != nil {
+		return err
+	}
+	s.memStorage.gaugeMetrics = make(map[string]metrics.Gauge)
+	s.memStorage.counterMetrics = make(map[string]metrics.Counter)
+	return nil
+}
+
+func (s *fileStorage) Migrate(_ context.Context) error {
+	return nil
 }

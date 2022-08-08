@@ -17,6 +17,7 @@ type MetricsStorage interface {
 	Ping(ctx context.Context) error
 	ShutDown(ctx context.Context) error
 	CleanUp(ctx context.Context) error
+	Migrate(ctx context.Context) error
 }
 
 type MetricsGetter interface {

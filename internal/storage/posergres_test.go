@@ -23,11 +23,11 @@ func TestPostgresStorage(t *testing.T) {
 
 	db, err := NewPostgresStorage(cfg.DSN, time.Second*5)
 	if err != nil {
-		log.Fatal().Err(err)
+		panic(err)
 	}
 
 	if err := db.Migrate(ctx); err != nil {
-		log.Fatal().Err(err)
+		panic(err)
 	}
 	testStorage(db, t)
 	if err := db.CleanUp(ctx); err != nil {
