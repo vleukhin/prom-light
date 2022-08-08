@@ -10,7 +10,7 @@ import (
 )
 
 type testConfig struct {
-	DSN string `env:"DATABASE_DSN_TEST" envDefault:"postgres://postgres:postgres@localhost:5454/tests?sslmode=disable"`
+	DSN string `env:"DATABASE_DSN_TEST" envDefault:""`
 }
 
 func TestPostgresStorage(t *testing.T) {
@@ -21,6 +21,9 @@ func TestPostgresStorage(t *testing.T) {
 		log.Fatal().Err(err)
 	}
 
+	if cfg.DSN == "" {
+		return
+	}
 	db, err := NewPostgresStorage(cfg.DSN, time.Second*5)
 	if err != nil {
 		panic(err)
