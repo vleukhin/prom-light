@@ -22,7 +22,7 @@ import (
 )
 
 type Poller interface {
-	Poll() metrics.Metrics
+	Poll() (metrics.Metrics, error)
 }
 
 type Agent struct {
@@ -77,7 +77,12 @@ func (c *Agent) poll(ctx context.Context, metricsCh chan<- metrics.Metrics) {
 			return
 		case <-c.pollTicker.C:
 			for _, p := range c.pollers {
-				metricsCh <- p.Poll()
+				mtrcs, err := p.Poll()
+				if err != nil {
+					log.Error().Err(err).Msgf("Failed to poll metrics from poller")
+					continue
+				}
+				metricsCh <- mtrcs
 			}
 		}
 	}

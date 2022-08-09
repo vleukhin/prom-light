@@ -4,7 +4,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/rs/zerolog/log"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/mem"
 
@@ -14,7 +13,7 @@ import (
 type PsPoller struct {
 }
 
-func (p PsPoller) Poll() metrics.Metrics {
+func (p PsPoller) Poll() (metrics.Metrics, error) {
 	var (
 		err         error
 		mtrcs       = make(metrics.Metrics, 0, 3)
@@ -24,11 +23,11 @@ func (p PsPoller) Poll() metrics.Metrics {
 
 	memory, err = mem.VirtualMemory()
 	if err != nil {
-		log.Error().Err(err)
+		return mtrcs, err
 	}
 	utilization, err = cpu.Percent(time.Second, true)
 	if err != nil {
-		log.Error().Err(err)
+		return mtrcs, err
 	}
 
 	mtrcs = append(mtrcs, metrics.MakeGaugeMetric("TotalMemory", metrics.Gauge(memory.Total)))
@@ -37,5 +36,5 @@ func (p PsPoller) Poll() metrics.Metrics {
 		mtrcs = append(mtrcs, metrics.MakeGaugeMetric("CPUutilization"+strconv.Itoa(cpuNum+1), metrics.Gauge(percent)))
 	}
 
-	return mtrcs
+	return mtrcs, nil
 }
