@@ -54,3 +54,19 @@ func TestMetric_Sign(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkSign(b *testing.B) {
+	var metricsData = Metrics{
+		MakeCounterMetric("Counter1", 0),
+		MakeCounterMetric("Counter2", 12312),
+		MakeCounterMetric("Counter3", 4444),
+		MakeGaugeMetric("Gauge1", 5.5),
+		MakeGaugeMetric("Gauge2", 0),
+		MakeGaugeMetric("Gauge3", -8),
+	}
+	hasher := hmac.New(sha256.New, []byte("test-key"))
+
+	for i := 0; i < b.N; i++ {
+		metricsData.Sign(hasher)
+	}
+}

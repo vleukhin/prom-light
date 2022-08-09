@@ -22,12 +22,13 @@ import (
 )
 
 type Poller interface {
-	Poll(ctx context.Context, metricCh chan<- metrics.Metrics)
+	Poll() metrics.Metrics
 }
 
 type Agent struct {
 	storage      storage.MetricsStorage
 	reportTicker *time.Ticker
+	pollTicker   *time.Ticker
 	client       http.Client
 	cfg          *AgentConfig
 	pollers      []Poller
@@ -43,6 +44,7 @@ func NewAgent(config *AgentConfig) Agent {
 	agent := Agent{
 		storage:      storage.NewMemoryStorage(),
 		reportTicker: time.NewTicker(config.ReportInterval),
+		pollTicker:   time.NewTicker(config.PollInterval),
 		client:       client,
 		cfg:          config,
 	}
@@ -51,20 +53,42 @@ func NewAgent(config *AgentConfig) Agent {
 		agent.hasher = hmac.New(sha256.New, []byte(config.Key))
 	}
 
-	agent.pollers = append(agent.pollers, pollers.NewMemStatsPoller(config.PollInterval))
-	agent.pollers = append(agent.pollers, pollers.NewPsPoller(config.PollInterval))
+	agent.pollers = append(agent.pollers, pollers.MemStatsPoller{})
+	agent.pollers = append(agent.pollers, pollers.PsPoller{})
 
 	return agent
 }
 
 func (c *Agent) Start(ctx context.Context) {
 	metricsCh := make(chan metrics.Metrics)
-	for _, p := range c.pollers {
-		go p.Poll(ctx, metricsCh)
-	}
+
+	go c.poll(ctx, metricsCh)
+	go c.storeMetrics(ctx, metricsCh)
 
 	for range c.reportTicker.C {
-		c.report(metricsCh)
+		c.report(ctx)
+	}
+}
+
+func (c *Agent) poll(ctx context.Context, metricsCh chan<- metrics.Metrics) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-c.pollTicker.C:
+			for _, p := range c.pollers {
+				metricsCh <- p.Poll()
+			}
+		}
+	}
+}
+
+func (c *Agent) storeMetrics(ctx context.Context, metricsCh chan metrics.Metrics) {
+	for m := range metricsCh {
+		err := c.storage.SetMetrics(ctx, m)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to store metrics")
+		}
 	}
 }
 
@@ -72,20 +96,22 @@ func (c *Agent) Stop() {
 	c.reportTicker.Stop()
 }
 
-func (c *Agent) report(metricsCh <-chan metrics.Metrics) {
-	for mtrcs := range metricsCh {
-		log.Info().Msg("Sending metrics")
-		if c.cfg.BatchMode {
-			err := c.sendReportBatchRequest(mtrcs)
+func (c *Agent) report(ctx context.Context) {
+	mtrcs, err := c.storage.GetAllMetrics(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get metrics to report")
+	}
+	log.Info().Msg("Sending metrics")
+	if c.cfg.BatchMode {
+		err := c.sendReportBatchRequest(mtrcs)
+		if err != nil {
+			log.Error().Msg("Error occurred while reporting batch of metrics:" + err.Error())
+		}
+	} else {
+		for _, m := range mtrcs {
+			err := c.sendReportRequest(m)
 			if err != nil {
-				log.Error().Msg("Error occurred while reporting batch of metrics:" + err.Error())
-			}
-		} else {
-			for _, m := range mtrcs {
-				err := c.sendReportRequest(m)
-				if err != nil {
-					log.Error().Msg("Error occurred while reporting " + m.Name + " metric:" + err.Error())
-				}
+				log.Error().Msg("Error occurred while reporting " + m.Name + " metric:" + err.Error())
 			}
 		}
 	}
