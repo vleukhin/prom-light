@@ -4,6 +4,23 @@ import (
 	"testing"
 )
 
+func TestPollers(t *testing.T) {
+	t.Run("ps", func(t *testing.T) {
+		poller := PsPoller{}
+		_, err := poller.Poll()
+		if err != nil {
+			t.Errorf("Got error from ps poller")
+		}
+	})
+	t.Run("mstats", func(t *testing.T) {
+		poller := MemStatsPoller{}
+		_, err := poller.Poll()
+		if err != nil {
+			t.Errorf("Got error from mstats poller")
+		}
+	})
+}
+
 func BenchmarkPollers(b *testing.B) {
 	mstatsPoller := MemStatsPoller{}
 	gopsPoller := PsPoller{}

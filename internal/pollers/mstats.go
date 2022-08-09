@@ -10,7 +10,7 @@ import (
 type MemStatsPoller struct {
 }
 
-func (p MemStatsPoller) Poll() metrics.Metrics {
+func (p MemStatsPoller) Poll() (metrics.Metrics, error) {
 	m := &runtime.MemStats{}
 	mtrcs := make(metrics.Metrics, 0, 29)
 	runtime.ReadMemStats(m)
@@ -46,5 +46,5 @@ func (p MemStatsPoller) Poll() metrics.Metrics {
 
 	mtrcs = append(mtrcs, metrics.MakeCounterMetric("PollCount", 1))
 
-	return mtrcs
+	return mtrcs, nil
 }

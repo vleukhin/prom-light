@@ -14,26 +14,31 @@ import (
 	"github.com/vleukhin/prom-light/internal/storage"
 )
 
+// UpdateMetricHandler хэндлер для обновления метрики
 type UpdateMetricHandler struct {
 	store storage.MetricsSetter
 }
 
+// UpdateMetricJSONHandler хэндлер для обновления метрики в формате JSON
 type UpdateMetricJSONHandler struct {
 	store  storage.MetricsSetter
 	hasher hash.Hash
 }
 
+// UpdateMetricsBatchHandler хэндлер для массового обновления метрик в формате JSON
 type UpdateMetricsBatchHandler struct {
 	store  storage.MetricsSetter
 	hasher hash.Hash
 }
 
+//NewUpdateMetricHandler создаёт хэндлер для обновления метрики
 func NewUpdateMetricHandler(storage storage.MetricsSetter) UpdateMetricHandler {
 	return UpdateMetricHandler{
 		store: storage,
 	}
 }
 
+//NewUpdateMetricJSONHandler создаёт хэндлер для обновления метрики в формате JSON
 func NewUpdateMetricJSONHandler(storage storage.MetricsSetter, hasher hash.Hash) UpdateMetricJSONHandler {
 	return UpdateMetricJSONHandler{
 		store:  storage,
@@ -41,6 +46,7 @@ func NewUpdateMetricJSONHandler(storage storage.MetricsSetter, hasher hash.Hash)
 	}
 }
 
+//NewUpdateMetricsBatchHandler создаёт хэндлер для массового обновления метрик в формате JSON
 func NewUpdateMetricsBatchHandler(storage storage.MetricsSetter, hasher hash.Hash) UpdateMetricsBatchHandler {
 	return UpdateMetricsBatchHandler{
 		store:  storage,

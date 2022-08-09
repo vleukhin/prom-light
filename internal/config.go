@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/pflag"
 )
 
+// ServerConfig описывает конфиг сервера
 type ServerConfig struct {
 	Addr          string        `env:"ADDRESS"`
 	Restore       bool          `env:"RESTORE"`
@@ -18,6 +19,7 @@ type ServerConfig struct {
 	LogLevel      string        `env:"LOG_LEVEL"`
 }
 
+// AgentConfig описывает конфиг агента
 type AgentConfig struct {
 	ServerAddr     string        `env:"ADDRESS"`
 	PollInterval   time.Duration `env:"POLL_INTERVAL"`
