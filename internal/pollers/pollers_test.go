@@ -1,8 +1,6 @@
 package pollers
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestPollers(t *testing.T) {
 	t.Run("ps", func(t *testing.T) {
@@ -28,12 +26,12 @@ func BenchmarkPollers(b *testing.B) {
 	b.ResetTimer()
 	b.Run("mstats", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			mstatsPoller.Poll()
+			_, _ = mstatsPoller.Poll()
 		}
 	})
 	b.Run("gops", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			gopsPoller.Poll()
+			_, _ = gopsPoller.Poll()
 		}
 	})
 }

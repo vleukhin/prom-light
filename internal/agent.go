@@ -37,7 +37,7 @@ type Agent struct {
 	hasher       hash.Hash
 }
 
-//NewAgent создаёт новый агент для сбора метрик
+// NewAgent создаёт новый агент для сбора метрик
 func NewAgent(config *AgentConfig) Agent {
 	rand.Seed(time.Now().Unix())
 

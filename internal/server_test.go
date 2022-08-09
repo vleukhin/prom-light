@@ -3,7 +3,7 @@ package internal
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -232,7 +232,7 @@ func TestGetMetricHandler_ServeHTTP(t *testing.T) {
 			require.Equal(t, tt.want.code, response.StatusCode)
 
 			if tt.want.code == http.StatusOK {
-				respBody, err := ioutil.ReadAll(response.Body)
+				respBody, err := io.ReadAll(response.Body)
 				require.NoError(t, err)
 
 				require.Equal(t, tt.want.value, string(respBody))
@@ -471,7 +471,7 @@ func TestGetMetricJSONHandler_ServeHTTP(t *testing.T) {
 			require.Equal(t, tt.want.code, response.StatusCode)
 
 			if tt.want.code == http.StatusOK {
-				respBody, err := ioutil.ReadAll(response.Body)
+				respBody, err := io.ReadAll(response.Body)
 				require.NoError(t, err)
 
 				require.Equal(t, tt.want.response, string(respBody))
