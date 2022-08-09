@@ -16,15 +16,18 @@ type MetricsStorage interface {
 	MetricsSetter
 	Ping(ctx context.Context) error
 	ShutDown(ctx context.Context) error
+	CleanUp(ctx context.Context) error
+	Migrate(ctx context.Context) error
 }
 
 type MetricsGetter interface {
 	GetGauge(ctx context.Context, metricName string) (metrics.Gauge, error)
 	GetCounter(ctx context.Context, metricName string) (metrics.Counter, error)
-	GetAllMetrics(ctx context.Context, resetCounters bool) (metrics.Metrics, error)
+	GetAllMetrics(ctx context.Context) (metrics.Metrics, error)
 }
 
 type MetricsSetter interface {
 	SetMetrics(ctx context.Context, mtrcs metrics.Metrics) error
 	SetMetric(ctx context.Context, m metrics.Metric) error
+	IncCounter(ctx context.Context, metricName string, value metrics.Counter) error
 }

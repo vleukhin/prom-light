@@ -25,3 +25,5 @@ vendor/
 .data
 .vscode
 devopstest
+
+.env

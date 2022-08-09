@@ -10,6 +10,9 @@ inc9 := ^TestIteration9$
 inc10 := ^TestIteration10$
 inc11 := ^TestIteration11$
 inc12 := ^TestIteration12$
+inc13 := ^TestIteration13$
+inc14 := ^TestIteration14$
+curr_dir := $(PWD)
 
 build: build-agent build-server
 
@@ -17,6 +20,8 @@ build-agent:
 	go build  -o ./cmd/agent/agent ./cmd/agent && chmod +x ./cmd/agent/agent
 build-server:
 	go build  -o ./cmd/server/server ./cmd/server && chmod +x ./cmd/server/server
+lint:
+	docker run --rm -v $(curr_dir):/app -w /app golangci/golangci-lint:v1.45.2 golangci-lint run -v
 
 tests: build tests-inc-1 tests-inc-2 tests-inc-3 tests-inc-4 tests-inc-5 tests-inc-6 tests-inc-7 tests-inc-8
 
@@ -83,6 +88,24 @@ tests-inc-11:
  	-key="super-secret-key"
 tests-inc-12:
 	./devopstest -test.v -test.run=$(inc12) \
+	-source-path=. \
+ 	-binary-path=./cmd/server/server \
+ 	-agent-binary-path=./cmd/agent/agent \
+ 	-server-port=4588 \
+ 	-database-dsn='postgres://postgres:postgres@localhost:5454/praktikum?sslmode=disable' \
+ 	-file-storage-path=/tmp/devops-metrics-db-test.json \
+ 	-key="super-secret-key"
+tests-inc-13:
+	./devopstest -test.v -test.run=$(inc13) \
+	-source-path=. \
+ 	-binary-path=./cmd/server/server \
+ 	-agent-binary-path=./cmd/agent/agent \
+ 	-server-port=4588 \
+ 	-database-dsn='postgres://postgres:postgres@localhost:5454/praktikum?sslmode=disable' \
+ 	-file-storage-path=/tmp/devops-metrics-db-test.json \
+ 	-key="super-secret-key"
+tests-inc-14:
+	./devopstest -test.v -test.run=$(inc14) \
 	-source-path=. \
  	-binary-path=./cmd/server/server \
  	-agent-binary-path=./cmd/agent/agent \

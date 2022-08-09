@@ -94,31 +94,15 @@ func (s *memoryStorage) GetCounter(_ context.Context, name string) (metrics.Coun
 	return value, nil
 }
 
-func (s *memoryStorage) GetAllMetrics(_ context.Context, resetCounters bool) (metrics.Metrics, error) {
+func (s *memoryStorage) GetAllMetrics(_ context.Context) (metrics.Metrics, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	result := make(metrics.Metrics, len(s.gaugeMetrics)+len(s.counterMetrics))
-	var i int
+	result := make(metrics.Metrics, 0, len(s.gaugeMetrics)+len(s.counterMetrics))
 	for k, v := range s.gaugeMetrics {
-		value := v
-		result[i] = metrics.Metric{
-			Name:  k,
-			Type:  metrics.GaugeTypeName,
-			Value: &value,
-		}
-		i++
+		result = append(result, metrics.MakeGaugeMetric(k, v))
 	}
 	for k, v := range s.counterMetrics {
-		value := v
-		result[i] = metrics.Metric{
-			Name:  k,
-			Type:  metrics.CounterTypeName,
-			Delta: &value,
-		}
-		if resetCounters {
-			s.counterMetrics[k] = 0
-		}
-		i++
+		result = append(result, metrics.MakeCounterMetric(k, v))
 	}
 
 	return result, nil
@@ -131,5 +115,17 @@ func (s *memoryStorage) ShutDown(_ context.Context) error {
 
 func (s *memoryStorage) Ping(_ context.Context) error {
 	// nothing to do here
+	return nil
+}
+func (s *memoryStorage) CleanUp(_ context.Context) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.gaugeMetrics = make(map[string]metrics.Gauge)
+	s.counterMetrics = make(map[string]metrics.Counter)
+
+	return nil
+}
+
+func (s *memoryStorage) Migrate(_ context.Context) error {
 	return nil
 }

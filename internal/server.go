@@ -37,7 +37,7 @@ func NewMetricsServer(config *ServerConfig) (MetricsServer, error) {
 
 	switch true {
 	case config.DSN != "":
-		str, err = storage.NewDatabaseStorage(config.DSN, config.DBConnTimeout)
+		str, err = storage.NewPostgresStorage(config.DSN, config.DBConnTimeout)
 		if err != nil {
 			return MetricsServer{}, err
 		}
@@ -134,10 +134,5 @@ func pingHandler(store storage.MetricsStorage) http.HandlerFunc {
 }
 
 func (s MetricsServer) migrate() error {
-	store, ok := s.str.(*storage.DatabaseStorage)
-	if !ok {
-		return nil
-	}
-
-	return store.Migrate(context.TODO())
+	return s.str.Migrate(context.Background())
 }
