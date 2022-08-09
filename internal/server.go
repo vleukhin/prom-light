@@ -16,6 +16,7 @@ import (
 	"github.com/vleukhin/prom-light/internal/storage"
 )
 
+// MetricsServer описывает сервер сбора метрик
 type MetricsServer struct {
 	cfg    *ServerConfig
 	str    storage.MetricsStorage
@@ -31,6 +32,7 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 	return w.Writer.Write(b)
 }
 
+// NewMetricsServer создает новый сервер сбора метрик
 func NewMetricsServer(config *ServerConfig) (MetricsServer, error) {
 	var err error
 	var str storage.MetricsStorage
@@ -68,15 +70,18 @@ func NewMetricsServer(config *ServerConfig) (MetricsServer, error) {
 	return server, nil
 }
 
+// Run запукает сервер сбора метрик
 func (s MetricsServer) Run(err chan<- error) {
 	log.Info().Msg("Metrics server listen at: " + s.cfg.Addr)
 	err <- http.ListenAndServe(s.cfg.Addr, NewRouter(s.str, s.hasher))
 }
 
+// Stop останавливает сервер сбора метрик
 func (s MetricsServer) Stop() error {
 	return s.str.ShutDown(context.TODO())
 }
 
+// NewRouter создает новый роутер
 func NewRouter(str storage.MetricsStorage, hasher hash.Hash) *mux.Router {
 	homeHandler := handlers.NewHomeHandler(str)
 	updateHandler := handlers.NewUpdateMetricHandler(str)

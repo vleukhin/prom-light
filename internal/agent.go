@@ -22,9 +22,11 @@ import (
 )
 
 type Poller interface {
+	// Poll сбор метрик
 	Poll() (metrics.Metrics, error)
 }
 
+// Agent описывает агент для сбра метрик
 type Agent struct {
 	storage      storage.MetricsStorage
 	reportTicker *time.Ticker
@@ -35,6 +37,7 @@ type Agent struct {
 	hasher       hash.Hash
 }
 
+//NewAgent создаёт новый агент для сбора метрик
 func NewAgent(config *AgentConfig) Agent {
 	rand.Seed(time.Now().Unix())
 
@@ -59,6 +62,7 @@ func NewAgent(config *AgentConfig) Agent {
 	return agent
 }
 
+// Start запускает сбор и отправку метрик
 func (c *Agent) Start(ctx context.Context) {
 	metricsCh := make(chan metrics.Metrics)
 
@@ -97,10 +101,12 @@ func (c *Agent) storeMetrics(ctx context.Context, metricsCh chan metrics.Metrics
 	}
 }
 
+// Stop останавливает сбор и отправку метрик
 func (c *Agent) Stop() {
 	c.reportTicker.Stop()
 }
 
+// report отправляет собранные метрики на сервер
 func (c *Agent) report(ctx context.Context) {
 	mtrcs, err := c.storage.GetAllMetrics(ctx)
 	if err != nil {
@@ -122,6 +128,7 @@ func (c *Agent) report(ctx context.Context) {
 	}
 }
 
+// sendReportRequest отправляет запрос на сервер метрик
 func (c *Agent) sendReportRequest(m metrics.Metric) error {
 	m.Sign(c.hasher)
 
@@ -145,6 +152,7 @@ func (c *Agent) sendReportRequest(m metrics.Metric) error {
 	return nil
 }
 
+// sendReportRequest отправляет batch запрос на сервер метрик
 func (c *Agent) sendReportBatchRequest(m metrics.Metrics) error {
 	data, err := json.Marshal(m.Sign(c.hasher))
 	if err != nil {

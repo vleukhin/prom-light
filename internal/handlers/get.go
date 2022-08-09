@@ -14,21 +14,25 @@ import (
 	"github.com/vleukhin/prom-light/internal/storage"
 )
 
+// GetMetricHandler хэнддер для получения метрик
 type GetMetricHandler struct {
 	store storage.MetricsGetter
 }
 
+// GetMetricJSONHandler хэнддер для получения метрик в формате JSON
 type GetMetricJSONHandler struct {
 	store  storage.MetricsGetter
 	hasher hash.Hash
 }
 
+// NewGetMetricHandler создает новый хэнддер для получения метрик
 func NewGetMetricHandler(storage storage.MetricsGetter) GetMetricHandler {
 	return GetMetricHandler{
 		store: storage,
 	}
 }
 
+// NewGetMetricJSONHandler создаем новый хэнддер для получения метрик в формате JSON
 func NewGetMetricJSONHandler(storage storage.MetricsGetter, hasher hash.Hash) GetMetricJSONHandler {
 	return GetMetricJSONHandler{
 		store:  storage,
