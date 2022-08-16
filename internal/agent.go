@@ -35,6 +35,7 @@ type Agent struct {
 	cfg          *AgentConfig
 	pollers      []Poller
 	hasher       hash.Hash
+	cancel       context.CancelFunc
 }
 
 // NewAgent создаёт новый агент для сбора метрик
@@ -63,7 +64,8 @@ func NewAgent(config *AgentConfig) Agent {
 }
 
 // Start запускает сбор и отправку метрик
-func (c *Agent) Start(ctx context.Context) {
+func (c *Agent) Start(ctx context.Context, cancel context.CancelFunc) {
+	c.cancel = cancel
 	metricsCh := make(chan metrics.Metrics)
 
 	go c.poll(ctx, metricsCh)
@@ -75,6 +77,12 @@ func (c *Agent) Start(ctx context.Context) {
 }
 
 func (c *Agent) poll(ctx context.Context, metricsCh chan<- metrics.Metrics) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error().Msgf("poll() panics: %v", r)
+			c.Stop()
+		}
+	}()
 	for {
 		select {
 		case <-ctx.Done():
@@ -93,6 +101,12 @@ func (c *Agent) poll(ctx context.Context, metricsCh chan<- metrics.Metrics) {
 }
 
 func (c *Agent) storeMetrics(ctx context.Context, metricsCh chan metrics.Metrics) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error().Msgf("storeMetrics() panics: %v", r)
+			c.Stop()
+		}
+	}()
 	for m := range metricsCh {
 		err := c.storage.SetMetrics(ctx, m)
 		if err != nil {
@@ -104,6 +118,7 @@ func (c *Agent) storeMetrics(ctx context.Context, metricsCh chan metrics.Metrics
 // Stop останавливает сбор и отправку метрик
 func (c *Agent) Stop() {
 	c.reportTicker.Stop()
+	c.cancel()
 }
 
 // report отправляет собранные метрики на сервер

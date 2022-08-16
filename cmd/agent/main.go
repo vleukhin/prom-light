@@ -29,7 +29,7 @@ func main() {
 
 	agent := internal.NewAgent(cfg)
 	mainCtx, cancel := context.WithCancel(context.Background())
-	go agent.Start(mainCtx)
+	go agent.Start(mainCtx, cancel)
 	errChan := make(chan error)
 	go func() {
 		errChan <- http.ListenAndServe("localhost:8888", nil)
@@ -47,6 +47,9 @@ func main() {
 		os.Exit(0)
 	case err := <-errChan:
 		log.Error().Msg("Server error: " + err.Error())
+		os.Exit(1)
+	case <-mainCtx.Done():
+		log.Info().Msg("Application stopped by agent...")
 		os.Exit(1)
 	}
 }
