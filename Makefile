@@ -14,12 +14,14 @@ inc13 := ^TestIteration13$
 inc14 := ^TestIteration14$
 curr_dir := $(PWD)
 
-build: build-agent build-server
+build: build-agent build-server build-staticlint
 
 build-agent:
 	go build  -o ./cmd/agent/agent ./cmd/agent && chmod +x ./cmd/agent/agent
 build-server:
 	go build  -o ./cmd/server/server ./cmd/server && chmod +x ./cmd/server/server
+build-staticlint:
+	go build  -o ./cmd/staticlint/staticlint ./cmd/staticlint && chmod +x ./cmd/staticlint/staticlint
 lint:
 	docker run --rm -v $(curr_dir):/app -w /app golangci/golangci-lint:v1.45.2 golangci-lint run -v
 
