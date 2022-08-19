@@ -3,7 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"hash"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -14,26 +14,31 @@ import (
 	"github.com/vleukhin/prom-light/internal/storage"
 )
 
+// UpdateMetricHandler хэндлер для обновления метрики
 type UpdateMetricHandler struct {
 	store storage.MetricsSetter
 }
 
+// UpdateMetricJSONHandler хэндлер для обновления метрики в формате JSON
 type UpdateMetricJSONHandler struct {
 	store  storage.MetricsSetter
 	hasher hash.Hash
 }
 
+// UpdateMetricsBatchHandler хэндлер для массового обновления метрик в формате JSON
 type UpdateMetricsBatchHandler struct {
 	store  storage.MetricsSetter
 	hasher hash.Hash
 }
 
+// NewUpdateMetricHandler создаёт хэндлер для обновления метрики
 func NewUpdateMetricHandler(storage storage.MetricsSetter) UpdateMetricHandler {
 	return UpdateMetricHandler{
 		store: storage,
 	}
 }
 
+// NewUpdateMetricJSONHandler создаёт хэндлер для обновления метрики в формате JSON
 func NewUpdateMetricJSONHandler(storage storage.MetricsSetter, hasher hash.Hash) UpdateMetricJSONHandler {
 	return UpdateMetricJSONHandler{
 		store:  storage,
@@ -41,6 +46,7 @@ func NewUpdateMetricJSONHandler(storage storage.MetricsSetter, hasher hash.Hash)
 	}
 }
 
+// NewUpdateMetricsBatchHandler создаёт хэндлер для массового обновления метрик в формате JSON
 func NewUpdateMetricsBatchHandler(storage storage.MetricsSetter, hasher hash.Hash) UpdateMetricsBatchHandler {
 	return UpdateMetricsBatchHandler{
 		store:  storage,
@@ -96,7 +102,7 @@ func (h UpdateMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	var m metrics.Metric
 
 	defer r.Body.Close()
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Error().Msg(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
@@ -130,7 +136,7 @@ func (h UpdateMetricsBatchHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 	var mtrcs metrics.Metrics
 
 	defer r.Body.Close()
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Error().Msg(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
