@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
@@ -27,15 +29,27 @@ func main() {
 
 	agent := internal.NewAgent(cfg)
 	mainCtx, cancel := context.WithCancel(context.Background())
-	go agent.Start(mainCtx)
+	go agent.Start(mainCtx, cancel)
+	errChan := make(chan error)
+	go func() {
+		errChan <- http.ListenAndServe("localhost:8888", nil)
+	}()
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Ignore(syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
-	<-sigChan
-	cancel()
-	log.Info().Msg("Terminating...")
-	agent.Stop()
-	os.Exit(0)
+	select {
+	case <-sigChan:
+		cancel()
+		log.Info().Msg("Terminating...")
+		agent.Stop()
+		os.Exit(0)
+	case err := <-errChan:
+		log.Error().Msg("Server error: " + err.Error())
+		os.Exit(1)
+	case <-mainCtx.Done():
+		log.Info().Msg("Application stopped by agent...")
+		os.Exit(1)
+	}
 }

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -14,21 +14,25 @@ import (
 	"github.com/vleukhin/prom-light/internal/storage"
 )
 
+// GetMetricHandler хэнддер для получения метрик
 type GetMetricHandler struct {
 	store storage.MetricsGetter
 }
 
+// GetMetricJSONHandler хэнддер для получения метрик в формате JSON
 type GetMetricJSONHandler struct {
 	store  storage.MetricsGetter
 	hasher hash.Hash
 }
 
+// NewGetMetricHandler создает новый хэнддер для получения метрик
 func NewGetMetricHandler(storage storage.MetricsGetter) GetMetricHandler {
 	return GetMetricHandler{
 		store: storage,
 	}
 }
 
+// NewGetMetricJSONHandler создаем новый хэнддер для получения метрик в формате JSON
 func NewGetMetricJSONHandler(storage storage.MetricsGetter, hasher hash.Hash) GetMetricJSONHandler {
 	return GetMetricJSONHandler{
 		store:  storage,
@@ -75,7 +79,7 @@ func (h GetMetricJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	var m metrics.Metric
 
 	defer r.Body.Close()
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Error().Msg(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)

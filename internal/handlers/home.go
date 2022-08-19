@@ -14,10 +14,12 @@ import (
 //go:embed templates
 var templates embed.FS
 
+// HomeHandler хэндлер для просмотра метрик
 type HomeHandler struct {
 	store storage.MetricsGetter
 }
 
+// NewHomeHandler создаёт новый хэндлер для просмотра метрик
 func NewHomeHandler(storage storage.MetricsGetter) HomeHandler {
 	return HomeHandler{
 		store: storage,

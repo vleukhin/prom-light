@@ -54,3 +54,48 @@ func TestMetric_Sign(t *testing.T) {
 		})
 	}
 }
+
+func TestMetric_String(t *testing.T) {
+	tests := []struct {
+		name   string
+		metric Metric
+		str    string
+	}{
+		{
+			name:   "round gauge",
+			metric: MakeGaugeMetric("test", 10),
+			str:    "10.000",
+		},
+		{
+			name:   "gauge",
+			metric: MakeGaugeMetric("test", 10.135496),
+			str:    "10.135",
+		},
+		{
+			name:   "counter",
+			metric: MakeCounterMetric("test", 10),
+			str:    "10",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.str, tt.metric.String())
+		})
+	}
+}
+
+func BenchmarkSign(b *testing.B) {
+	var metricsData = Metrics{
+		MakeCounterMetric("Counter1", 0),
+		MakeCounterMetric("Counter2", 12312),
+		MakeCounterMetric("Counter3", 4444),
+		MakeGaugeMetric("Gauge1", 5.5),
+		MakeGaugeMetric("Gauge2", 0),
+		MakeGaugeMetric("Gauge3", -8),
+	}
+	hasher := hmac.New(sha256.New, []byte("test-key"))
+
+	for i := 0; i < b.N; i++ {
+		metricsData.Sign(hasher)
+	}
+}

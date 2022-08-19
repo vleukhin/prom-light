@@ -1,0 +1,89 @@
+openapi: 3.0.3
+info:
+  version: 1.0.0
+  title: PromLight Server API
+paths:
+  /:
+    get:
+      summary: Страница для просмотра собранных метрик
+      responses:
+        "200":
+          description: HTML страница с собранными метриками
+          content:
+            text/html:
+              schema:
+                type: string
+  /update/:
+    post:
+      summary: Обновление метрики
+      responses:
+        "200":
+          description: Метрика обновлена
+  /updates/:
+    post:
+      summary: Массовове обновление метрик
+      responses:
+        "200":
+          description: Метрики обновлены
+  /update/{type}/{name}/{value}/:
+    post:
+      summary: Обновление метрики
+      parameters:
+        - $ref: '#/components/parameters/MetricType'
+        - $ref: '#/components/parameters/MetricName'
+        - $ref: '#/components/parameters/MetricValue'
+
+      responses:
+        "200":
+          description: Метрика обновлена
+  /value/:
+    post:
+      summary: Получение значения метрики
+      responses:
+        "200":
+          description: Значение метрики
+  /value/{type}/{name}/:
+    parameters:
+      - $ref: '#/components/parameters/MetricType'
+      - $ref: '#/components/parameters/MetricName'
+    post:
+      summary: Получение значения метрики
+      responses:
+        "200":
+          description: Значение метрики
+  /ping/:
+    get:
+      summary: Проверка работоспособности сервера
+      responses:
+        "200":
+          description: ОК
+        "500":
+          description: Some problems
+
+components:
+  parameters:
+    MetricType:
+      description: Тип метрики
+      in: path
+      name: type
+      required: true
+      schema:
+        enum:
+          - counter
+          - gauge
+        example: counter
+        type: string
+    MetricName:
+      description: Тип метрики
+      in: path
+      name: name
+      required: true
+      schema:
+        type: string
+    MetricValue:
+      description: Значение метрики
+      in: path
+      name: value
+      required: true
+      schema:
+        type: string

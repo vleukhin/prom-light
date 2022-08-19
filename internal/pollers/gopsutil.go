@@ -1,11 +1,9 @@
 package pollers
 
 import (
-	"context"
 	"strconv"
 	"time"
 
-	"github.com/rs/zerolog/log"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/mem"
 
@@ -13,16 +11,9 @@ import (
 )
 
 type PsPoller struct {
-	ticker *time.Ticker
 }
 
-func NewPsPoller(interval time.Duration) PsPoller {
-	return PsPoller{
-		time.NewTicker(interval),
-	}
-}
-
-func (p PsPoller) Poll(ctx context.Context, ch chan<- metrics.Metrics) {
+func (p PsPoller) Poll() (metrics.Metrics, error) {
 	var (
 		err         error
 		mtrcs       = make(metrics.Metrics, 0, 3)
@@ -30,29 +21,20 @@ func (p PsPoller) Poll(ctx context.Context, ch chan<- metrics.Metrics) {
 		utilization []float64
 	)
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-p.ticker.C:
-			memory, err = mem.VirtualMemory()
-			if err != nil {
-				log.Error().Err(err)
-				continue
-			}
-			utilization, err = cpu.Percent(time.Second, true)
-			if err != nil {
-				log.Error().Err(err)
-				continue
-			}
-
-			mtrcs = append(mtrcs, metrics.MakeGaugeMetric("TotalMemory", metrics.Gauge(memory.Total)))
-			mtrcs = append(mtrcs, metrics.MakeGaugeMetric("FreeMemory", metrics.Gauge(memory.Free)))
-			for cpuNum, percent := range utilization {
-				mtrcs = append(mtrcs, metrics.MakeGaugeMetric("CPUutilization"+strconv.Itoa(cpuNum+1), metrics.Gauge(percent)))
-			}
-
-			ch <- mtrcs
-		}
+	memory, err = mem.VirtualMemory()
+	if err != nil {
+		return mtrcs, err
 	}
+	utilization, err = cpu.Percent(time.Second, true)
+	if err != nil {
+		return mtrcs, err
+	}
+
+	mtrcs = append(mtrcs, metrics.MakeGaugeMetric("TotalMemory", metrics.Gauge(memory.Total)))
+	mtrcs = append(mtrcs, metrics.MakeGaugeMetric("FreeMemory", metrics.Gauge(memory.Free)))
+	for cpuNum, percent := range utilization {
+		mtrcs = append(mtrcs, metrics.MakeGaugeMetric("CPUutilization"+strconv.Itoa(cpuNum+1), metrics.Gauge(percent)))
+	}
+
+	return mtrcs, nil
 }

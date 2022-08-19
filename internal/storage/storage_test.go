@@ -2,10 +2,11 @@ package storage
 
 import (
 	"context"
-	"github.com/vleukhin/prom-light/internal/metrics"
 	"reflect"
 	"sort"
 	"testing"
+
+	"github.com/vleukhin/prom-light/internal/metrics"
 )
 
 func testStorage(storage MetricsStorage, t *testing.T) {

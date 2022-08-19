@@ -22,18 +22,23 @@ import (
 )
 
 type Poller interface {
-	Poll(ctx context.Context, metricCh chan<- metrics.Metrics)
+	// Poll сбор метрик
+	Poll() (metrics.Metrics, error)
 }
 
+// Agent описывает агент для сбра метрик
 type Agent struct {
 	storage      storage.MetricsStorage
 	reportTicker *time.Ticker
+	pollTicker   *time.Ticker
 	client       http.Client
 	cfg          *AgentConfig
 	pollers      []Poller
 	hasher       hash.Hash
+	cancel       context.CancelFunc
 }
 
+// NewAgent создаёт новый агент для сбора метрик
 func NewAgent(config *AgentConfig) Agent {
 	rand.Seed(time.Now().Unix())
 
@@ -43,6 +48,7 @@ func NewAgent(config *AgentConfig) Agent {
 	agent := Agent{
 		storage:      storage.NewMemoryStorage(),
 		reportTicker: time.NewTicker(config.ReportInterval),
+		pollTicker:   time.NewTicker(config.PollInterval),
 		client:       client,
 		cfg:          config,
 	}
@@ -51,46 +57,93 @@ func NewAgent(config *AgentConfig) Agent {
 		agent.hasher = hmac.New(sha256.New, []byte(config.Key))
 	}
 
-	agent.pollers = append(agent.pollers, pollers.NewMemStatsPoller(config.PollInterval))
-	agent.pollers = append(agent.pollers, pollers.NewPsPoller(config.PollInterval))
+	agent.pollers = append(agent.pollers, pollers.MemStatsPoller{})
+	agent.pollers = append(agent.pollers, pollers.PsPoller{})
 
 	return agent
 }
 
-func (c *Agent) Start(ctx context.Context) {
+// Start запускает сбор и отправку метрик
+func (c *Agent) Start(ctx context.Context, cancel context.CancelFunc) {
+	c.cancel = cancel
 	metricsCh := make(chan metrics.Metrics)
-	for _, p := range c.pollers {
-		go p.Poll(ctx, metricsCh)
-	}
+
+	go c.poll(ctx, metricsCh)
+	go c.storeMetrics(ctx, metricsCh)
 
 	for range c.reportTicker.C {
-		c.report(metricsCh)
+		c.report(ctx)
 	}
 }
 
-func (c *Agent) Stop() {
-	c.reportTicker.Stop()
-}
-
-func (c *Agent) report(metricsCh <-chan metrics.Metrics) {
-	for mtrcs := range metricsCh {
-		log.Info().Msg("Sending metrics")
-		if c.cfg.BatchMode {
-			err := c.sendReportBatchRequest(mtrcs)
-			if err != nil {
-				log.Error().Msg("Error occurred while reporting batch of metrics:" + err.Error())
-			}
-		} else {
-			for _, m := range mtrcs {
-				err := c.sendReportRequest(m)
+func (c *Agent) poll(ctx context.Context, metricsCh chan<- metrics.Metrics) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error().Msgf("poll() panics: %v", r)
+			c.Stop()
+		}
+	}()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-c.pollTicker.C:
+			for _, p := range c.pollers {
+				mtrcs, err := p.Poll()
 				if err != nil {
-					log.Error().Msg("Error occurred while reporting " + m.Name + " metric:" + err.Error())
+					log.Error().Err(err).Msgf("Failed to poll metrics from poller")
+					continue
 				}
+				metricsCh <- mtrcs
 			}
 		}
 	}
 }
 
+func (c *Agent) storeMetrics(ctx context.Context, metricsCh chan metrics.Metrics) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error().Msgf("storeMetrics() panics: %v", r)
+			c.Stop()
+		}
+	}()
+	for m := range metricsCh {
+		err := c.storage.SetMetrics(ctx, m)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to store metrics")
+		}
+	}
+}
+
+// Stop останавливает сбор и отправку метрик
+func (c *Agent) Stop() {
+	c.reportTicker.Stop()
+	c.cancel()
+}
+
+// report отправляет собранные метрики на сервер
+func (c *Agent) report(ctx context.Context) {
+	mtrcs, err := c.storage.GetAllMetrics(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get metrics to report")
+	}
+	log.Info().Msg("Sending metrics")
+	if c.cfg.BatchMode {
+		err := c.sendReportBatchRequest(mtrcs)
+		if err != nil {
+			log.Error().Msg("Error occurred while reporting batch of metrics:" + err.Error())
+		}
+	} else {
+		for _, m := range mtrcs {
+			err := c.sendReportRequest(m)
+			if err != nil {
+				log.Error().Msg("Error occurred while reporting " + m.Name + " metric:" + err.Error())
+			}
+		}
+	}
+}
+
+// sendReportRequest отправляет запрос на сервер метрик
 func (c *Agent) sendReportRequest(m metrics.Metric) error {
 	m.Sign(c.hasher)
 
@@ -114,6 +167,7 @@ func (c *Agent) sendReportRequest(m metrics.Metric) error {
 	return nil
 }
 
+// sendReportRequest отправляет batch запрос на сервер метрик
 func (c *Agent) sendReportBatchRequest(m metrics.Metrics) error {
 	data, err := json.Marshal(m.Sign(c.hasher))
 	if err != nil {

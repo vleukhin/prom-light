@@ -9,23 +9,35 @@ import (
 type Gauge float64
 type Counter int64
 
+// Metric определяем метрику
 type Metric struct {
-	Name  string   `json:"id"`              // имя метрики
-	Type  string   `json:"type"`            // параметр, принимающий значение gauge или counter
-	Delta *Counter `json:"delta,omitempty"` // значение метрики в случае передачи counter
-	Value *Gauge   `json:"value,omitempty"` // значение метрики в случае передачи gauge
-	Hash  string   `json:"hash,omitempty"`  // значение хеш-функции
+	// Name имя метрики
+	Name string `json:"id"`
+	// Type параметр, принимающий значение gauge или counter
+	Type string `json:"type"`
+	// Delta значение метрики в случае передачи counter
+	Delta *Counter `json:"delta,omitempty"`
+	// Value значение метрики в случае передачи gauge
+	Value *Gauge `json:"value,omitempty"`
+	// Hash значение хеш-функции
+	Hash string `json:"hash,omitempty"`
 }
 
+// Metrics слайс метрик
 type Metrics []Metric
 
-const GaugeTypeName = "gauge"
-const CounterTypeName = "counter"
+// Строковое представление типов метрик
+const (
+	GaugeTypeName   = "gauge"
+	CounterTypeName = "counter"
+)
 
+// IsCounter проверяет является ли метрика счетчиком
 func (m Metric) IsCounter() bool {
 	return m.Type == CounterTypeName
 }
 
+// String выдает строковое представление метрики
 func (m Metric) String() string {
 	var str string
 	switch m.Type {
@@ -40,6 +52,7 @@ func (m Metric) String() string {
 	return str
 }
 
+// makeHash вычисляем хэш для метрики
 func makeHash(m Metric, hasher hash.Hash) string {
 	if hasher == nil {
 		return ""
@@ -56,6 +69,7 @@ func makeHash(m Metric, hasher hash.Hash) string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
+// Sign подписывает метрику с помощью переданного хэшера
 func (m *Metric) Sign(hasher hash.Hash) {
 	if hasher == nil {
 		return
@@ -63,10 +77,12 @@ func (m *Metric) Sign(hasher hash.Hash) {
 	m.Hash = makeHash(*m, hasher)
 }
 
+// IsValid проверяет валидность подписи метрики
 func (m Metric) IsValid(hasher hash.Hash) bool {
 	return m.Hash == makeHash(m, hasher)
 }
 
+// IsValid проверяет валидность всех метрик в слайсе
 func (m Metrics) IsValid(hasher hash.Hash) bool {
 	for _, i := range m {
 		if !i.IsValid(hasher) {
@@ -76,6 +92,7 @@ func (m Metrics) IsValid(hasher hash.Hash) bool {
 	return true
 }
 
+// Sign подписывает все метрики в слайсе
 func (m Metrics) Sign(hasher hash.Hash) Metrics {
 	result := make(Metrics, len(m))
 	for i, metric := range m {
@@ -86,6 +103,7 @@ func (m Metrics) Sign(hasher hash.Hash) Metrics {
 	return result
 }
 
+// MakeGaugeMetric создает метрику типа gauge
 func MakeGaugeMetric(name string, value Gauge) Metric {
 	return Metric{
 		Name:  name,
@@ -93,6 +111,8 @@ func MakeGaugeMetric(name string, value Gauge) Metric {
 		Value: &value,
 	}
 }
+
+// MakeCounterMetric создает метрику типа counter
 func MakeCounterMetric(name string, delta Counter) Metric {
 	return Metric{
 		Name:  name,
