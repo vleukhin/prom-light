@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
@@ -12,7 +13,12 @@ import (
 	"github.com/vleukhin/prom-light/internal"
 )
 
+var buildVersion = "N/A"
+var buildDate = "N/A"
+var buildCommit = "N/A"
+
 func main() {
+	printIntro()
 	cfg := &internal.ServerConfig{}
 	if err := cfg.Parse(); err != nil {
 		log.Fatal().Msg(err.Error())
@@ -50,4 +56,13 @@ func main() {
 	case err := <-errChan:
 		log.Error().Msg("Server error: " + err.Error())
 	}
+}
+
+func printIntro() {
+	fmt.Println("PromLight Server")
+	fmt.Println("----------------")
+	fmt.Printf("Build version: %s\n", buildVersion)
+	fmt.Printf("Build date: %s\n", buildDate)
+	fmt.Printf("Build commit: %s\n", buildCommit)
+	fmt.Println("----------------")
 }
