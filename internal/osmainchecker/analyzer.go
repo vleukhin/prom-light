@@ -21,13 +21,11 @@ func hasOSExit(f *ast.FuncDecl, pass *analysis.Pass) {
 		}
 
 		if selExpr, ok := funcCall.Fun.(*ast.SelectorExpr); ok {
-			switch selExpr.X.(type) {
-			case *ast.Ident:
-				if selExpr.X.(*ast.Ident).Name == "os" && selExpr.Sel.Name == "Exit" {
+			if i, ok := selExpr.X.(*ast.Ident); ok {
+				if i.Name == "os" && selExpr.Sel.Name == "Exit" {
 					pass.Reportf(funcCall.Pos(), "found os.Exit() call in main()")
 				}
 			}
-
 		}
 		return true
 	})

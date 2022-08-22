@@ -6,7 +6,6 @@ import (
 	"golang.org/x/tools/go/analysis/multichecker"
 	"golang.org/x/tools/go/analysis/passes/loopclosure"
 	"golang.org/x/tools/go/analysis/passes/printf"
-	"golang.org/x/tools/go/analysis/passes/shadow"
 	"golang.org/x/tools/go/analysis/passes/structtag"
 	"honnef.co/go/tools/staticcheck"
 
@@ -19,7 +18,6 @@ func main() {
 		analyzers = append(analyzers, a.Analyzer)
 	}
 	analyzers = append(analyzers, printf.Analyzer)
-	analyzers = append(analyzers, shadow.Analyzer)
 	analyzers = append(analyzers, structtag.Analyzer)
 	analyzers = append(analyzers, loopclosure.Analyzer)
 	analyzers = append(analyzers, critic.Analyzer)

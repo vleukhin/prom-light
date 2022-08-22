@@ -16,13 +16,11 @@ func main() {
 	cfg := &internal.ServerConfig{}
 	if err := cfg.Parse(); err != nil {
 		log.Fatal().Msg(err.Error())
-		os.Exit(1)
 	}
 
 	logLevel, err := zerolog.ParseLevel(cfg.LogLevel)
 	if err != nil {
 		log.Fatal().Msg(err.Error())
-		os.Exit(1)
 	}
 
 	zerolog.SetGlobalLevel(logLevel)
@@ -49,9 +47,7 @@ func main() {
 	select {
 	case <-sigChan:
 		log.Info().Msg("Terminating...")
-		os.Exit(0)
 	case err := <-errChan:
 		log.Error().Msg("Server error: " + err.Error())
-		os.Exit(1)
 	}
 }

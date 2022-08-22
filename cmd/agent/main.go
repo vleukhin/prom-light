@@ -44,12 +44,10 @@ func main() {
 		cancel()
 		log.Info().Msg("Terminating...")
 		agent.Stop()
-		os.Exit(0)
+		return
 	case err := <-errChan:
 		log.Error().Msg("Server error: " + err.Error())
-		os.Exit(1)
 	case <-mainCtx.Done():
 		log.Info().Msg("Application stopped by agent...")
-		os.Exit(1)
 	}
 }
