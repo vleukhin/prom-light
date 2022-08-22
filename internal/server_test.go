@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -477,5 +478,28 @@ func TestGetMetricJSONHandler_ServeHTTP(t *testing.T) {
 				require.Equal(t, tt.want.response, string(respBody))
 			}
 		})
+	}
+}
+
+func TestServer_Start(t *testing.T) {
+	server, err := NewMetricsServer(&ServerConfig{
+		Addr:      "localhost:9999",
+		StoreFile: "/tmp/server_test",
+	})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	ch := make(chan error)
+	go server.Run(ch)
+	time.Sleep(100 * time.Millisecond)
+	select {
+	case err := <-ch:
+		t.Error(err)
+	default:
+		err = server.Stop()
+		if err != nil {
+			t.Error(err)
+		}
 	}
 }
