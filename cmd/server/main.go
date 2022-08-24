@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
@@ -12,17 +13,20 @@ import (
 	"github.com/vleukhin/prom-light/internal"
 )
 
+var buildVersion = "N/A"
+var buildDate = "N/A"
+var buildCommit = "N/A"
+
 func main() {
+	printIntro()
 	cfg := &internal.ServerConfig{}
 	if err := cfg.Parse(); err != nil {
 		log.Fatal().Msg(err.Error())
-		os.Exit(1)
 	}
 
 	logLevel, err := zerolog.ParseLevel(cfg.LogLevel)
 	if err != nil {
 		log.Fatal().Msg(err.Error())
-		os.Exit(1)
 	}
 
 	zerolog.SetGlobalLevel(logLevel)
@@ -49,9 +53,16 @@ func main() {
 	select {
 	case <-sigChan:
 		log.Info().Msg("Terminating...")
-		os.Exit(0)
 	case err := <-errChan:
 		log.Error().Msg("Server error: " + err.Error())
-		os.Exit(1)
 	}
+}
+
+func printIntro() {
+	fmt.Println("PromLight Server")
+	fmt.Println("----------------")
+	fmt.Printf("Build version: %s\n", buildVersion)
+	fmt.Printf("Build date: %s\n", buildDate)
+	fmt.Printf("Build commit: %s\n", buildCommit)
+	fmt.Println("----------------")
 }

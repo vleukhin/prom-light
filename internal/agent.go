@@ -71,9 +71,17 @@ func (c *Agent) Start(ctx context.Context, cancel context.CancelFunc) {
 	go c.poll(ctx, metricsCh)
 	go c.storeMetrics(ctx, metricsCh)
 
+reportLoop:
 	for range c.reportTicker.C {
-		c.report(ctx)
+		select {
+		case <-ctx.Done():
+			break reportLoop
+		default:
+			c.report(ctx)
+		}
 	}
+
+	c.Stop()
 }
 
 func (c *Agent) poll(ctx context.Context, metricsCh chan<- metrics.Metrics) {
@@ -117,6 +125,7 @@ func (c *Agent) storeMetrics(ctx context.Context, metricsCh chan metrics.Metrics
 
 // Stop останавливает сбор и отправку метрик
 func (c *Agent) Stop() {
+	log.Info().Msg("Stopping agent")
 	c.reportTicker.Stop()
 	c.cancel()
 }
