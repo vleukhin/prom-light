@@ -1,9 +1,9 @@
 package internal
 
 import (
+	"github.com/caarlos0/env/v6"
 	"time"
 
-	"github.com/caarlos0/env/v6"
 	"github.com/spf13/pflag"
 )
 
@@ -17,6 +17,7 @@ type ServerConfig struct {
 	DSN           string        `env:"DATABASE_DSN"`
 	DBConnTimeout time.Duration `env:"DB_CONN_TIMEOUT" envDefault:"5s"`
 	LogLevel      string        `env:"LOG_LEVEL"`
+	CryptoKey     string        `env:"CRYPTO_KEY"`
 }
 
 // AgentConfig описывает конфиг агента
@@ -28,6 +29,7 @@ type AgentConfig struct {
 	Key            string        `env:"KEY"`
 	BatchMode      bool          `env:"BATCH_MODE"`
 	LogLevel       string        `env:"LOG_LEVEL"`
+	CryptoKey      string        `env:"CRYPTO_KEY"`
 }
 
 func (cfg *ServerConfig) Parse() error {
@@ -38,6 +40,7 @@ func (cfg *ServerConfig) Parse() error {
 	key := pflag.StringP("key", "k", "", "Secret key for signing data")
 	dsn := pflag.StringP("database-dsn", "d", "", "Database connection string")
 	logLevel := pflag.StringP("log-level", "l", "info", "Setup log level")
+	cryptoKey := pflag.StringP("crypto-key", "c", "", "Path to private key")
 
 	pflag.Parse()
 
@@ -48,6 +51,7 @@ func (cfg *ServerConfig) Parse() error {
 	cfg.Key = *key
 	cfg.DSN = *dsn
 	cfg.LogLevel = *logLevel
+	cfg.CryptoKey = *cryptoKey
 
 	err := env.Parse(cfg)
 	if err != nil {
@@ -65,6 +69,7 @@ func (cfg *AgentConfig) Parse() error {
 	key := pflag.StringP("key", "k", "", "Secret key for signing data")
 	batch := pflag.BoolP("batch", "b", true, "Report metrics in batches")
 	logLevel := pflag.StringP("log-level", "l", "info", "Setup log level")
+	cryptoKey := pflag.StringP("crypto-key", "c", "", "Path to public key")
 
 	pflag.Parse()
 
@@ -75,6 +80,7 @@ func (cfg *AgentConfig) Parse() error {
 	cfg.Key = *key
 	cfg.BatchMode = *batch
 	cfg.LogLevel = *logLevel
+	cfg.CryptoKey = *cryptoKey
 
 	err := env.Parse(cfg)
 	if err != nil {

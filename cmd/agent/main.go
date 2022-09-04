@@ -33,7 +33,10 @@ func main() {
 
 	zerolog.SetGlobalLevel(logLevel)
 
-	agent := internal.NewAgent(cfg)
+	agent, err := internal.NewAgent(cfg)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create agent")
+	}
 	mainCtx, cancel := context.WithCancel(context.Background())
 	go agent.Start(mainCtx, cancel)
 	errChan := make(chan error)
