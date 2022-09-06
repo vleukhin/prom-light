@@ -1,8 +1,9 @@
 package internal
 
 import (
-	"github.com/caarlos0/env/v6"
 	"time"
+
+	"github.com/caarlos0/env/v6"
 
 	"github.com/spf13/pflag"
 )

@@ -9,13 +9,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/vleukhin/prom-light/internal/crypt"
 	"hash"
-	"io/ioutil"
 	mrand "math/rand"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
+
+	"github.com/vleukhin/prom-light/internal/crypt"
 
 	"github.com/rs/zerolog/log"
 
@@ -75,7 +76,7 @@ func (c *Agent) setPublicKey() error {
 	if c.cfg.CryptoKey == "" {
 		return nil
 	}
-	b, err := ioutil.ReadFile(c.cfg.CryptoKey)
+	b, err := os.ReadFile(c.cfg.CryptoKey)
 	if err != nil {
 		return err
 	}
@@ -229,6 +230,5 @@ func (c *Agent) encrypt(m metrics.Metrics) ([]byte, error) {
 		return data, nil
 	}
 
-	ciphertext, err := crypt.EncryptOAEP(c.publicKey, data, nil)
-	return ciphertext, nil
+	return crypt.EncryptOAEP(c.publicKey, data, nil)
 }

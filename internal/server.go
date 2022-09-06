@@ -5,13 +5,15 @@ import (
 	"crypto/hmac"
 	"crypto/rsa"
 	"crypto/sha256"
+	"hash"
+	"net/http"
+	"os"
+
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
+
 	"github.com/vleukhin/prom-light/internal/crypt"
 	"github.com/vleukhin/prom-light/internal/middlewares"
-	"hash"
-	"io/ioutil"
-	"net/http"
 
 	"github.com/vleukhin/prom-light/internal/handlers"
 	"github.com/vleukhin/prom-light/internal/storage"
@@ -72,7 +74,7 @@ func (s *MetricsServer) setPrivateKey() error {
 	if s.cfg.CryptoKey == "" {
 		return nil
 	}
-	b, err := ioutil.ReadFile(s.cfg.CryptoKey)
+	b, err := os.ReadFile(s.cfg.CryptoKey)
 	if err != nil {
 		return err
 	}

@@ -2,9 +2,10 @@ package internal
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAgent_Start(t *testing.T) {
