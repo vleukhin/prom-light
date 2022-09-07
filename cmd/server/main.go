@@ -40,7 +40,7 @@ func main() {
 	sigChan := make(chan os.Signal, 1)
 
 	go server.Run(errChan)
-	defer func(server internal.MetricsServer) {
+	defer func(server *internal.MetricsServer) {
 		err := server.Stop()
 		if err != nil {
 			panic(err)
