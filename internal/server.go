@@ -9,9 +9,12 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/pkg/errors"
+
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
 
+	"github.com/vleukhin/prom-light/internal/config"
 	"github.com/vleukhin/prom-light/internal/crypt"
 	"github.com/vleukhin/prom-light/internal/middlewares"
 
@@ -21,25 +24,25 @@ import (
 
 // MetricsServer описывает сервер сбора метрик
 type MetricsServer struct {
-	cfg        *ServerConfig
+	cfg        *config.ServerConfig
 	str        storage.MetricsStorage
 	hasher     hash.Hash
 	PrivateKey *rsa.PrivateKey
 }
 
 // NewMetricsServer создает новый сервер сбора метрик
-func NewMetricsServer(config *ServerConfig) (*MetricsServer, error) {
+func NewMetricsServer(config *config.ServerConfig) (*MetricsServer, error) {
 	var err error
 	var str storage.MetricsStorage
 
 	switch true {
 	case config.DSN != "":
-		str, err = storage.NewPostgresStorage(config.DSN, config.DBConnTimeout)
+		str, err = storage.NewPostgresStorage(config.DSN, config.DBConnTimeout.Duration)
 		if err != nil {
 			return nil, err
 		}
 	case config.StoreFile != "":
-		str, err = storage.NewFileStorage(config.StoreFile, config.StoreInterval, config.Restore)
+		str, err = storage.NewFileStorage(config.StoreFile, config.StoreInterval.Duration, config.Restore)
 		if err != nil {
 			return nil, err
 		}
@@ -55,7 +58,7 @@ func NewMetricsServer(config *ServerConfig) (*MetricsServer, error) {
 	}
 
 	if err := server.setPrivateKey(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to set private key")
 	}
 
 	err = server.migrate()

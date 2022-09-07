@@ -7,6 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/vleukhin/prom-light/internal/config"
+
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
@@ -19,7 +21,7 @@ var buildCommit = "N/A"
 
 func main() {
 	printIntro()
-	cfg := &internal.ServerConfig{}
+	cfg := &config.ServerConfig{}
 	if err := cfg.Parse(); err != nil {
 		log.Fatal().Msg(err.Error())
 	}
@@ -33,7 +35,7 @@ func main() {
 
 	server, err := internal.NewMetricsServer(cfg)
 	if err != nil {
-		log.Fatal().Msg(err.Error())
+		log.Fatal().Err(err).Msg("Failed to create server")
 	}
 
 	errChan := make(chan error)

@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/vleukhin/prom-light/internal/config"
+
 	"github.com/stretchr/testify/require"
 
 	"github.com/vleukhin/prom-light/internal/metrics"
@@ -482,7 +484,7 @@ func TestGetMetricJSONHandler_ServeHTTP(t *testing.T) {
 }
 
 func TestServer_Start(t *testing.T) {
-	server, err := NewMetricsServer(&ServerConfig{
+	server, err := NewMetricsServer(&config.ServerConfig{
 		Addr:      "localhost:9999",
 		StoreFile: "/tmp/server_test",
 	})

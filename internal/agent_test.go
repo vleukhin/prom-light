@@ -5,13 +5,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/vleukhin/prom-light/internal/config"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAgent_Start(t *testing.T) {
-	agent, err := NewAgent(&AgentConfig{
-		PollInterval:   50 * time.Millisecond,
-		ReportInterval: 50 * time.Millisecond,
+	agent, err := NewAgent(&config.AgentConfig{
+		PollInterval:   config.Duration{Duration: 50 * time.Millisecond},
+		ReportInterval: config.Duration{Duration: 50 * time.Millisecond},
 	})
 
 	assert.NoError(t, err)
