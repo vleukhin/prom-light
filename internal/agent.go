@@ -16,6 +16,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/vleukhin/prom-light/internal/config"
+
 	"github.com/vleukhin/prom-light/internal/crypt"
 
 	"github.com/rs/zerolog/log"
@@ -36,7 +38,7 @@ type Agent struct {
 	reportTicker *time.Ticker
 	pollTicker   *time.Ticker
 	client       http.Client
-	cfg          *AgentConfig
+	cfg          *config.AgentConfig
 	pollers      []Poller
 	hasher       hash.Hash
 	cancel       context.CancelFunc
@@ -44,16 +46,16 @@ type Agent struct {
 }
 
 // NewAgent создаёт новый агент для сбора метрик
-func NewAgent(config *AgentConfig) (*Agent, error) {
+func NewAgent(config *config.AgentConfig) (*Agent, error) {
 	mrand.Seed(time.Now().Unix())
 
 	client := http.Client{}
-	client.Timeout = config.ReportTimeout
+	client.Timeout = config.ReportTimeout.Duration
 
 	agent := Agent{
 		storage:      storage.NewMemoryStorage(),
-		reportTicker: time.NewTicker(config.ReportInterval),
-		pollTicker:   time.NewTicker(config.PollInterval),
+		reportTicker: time.NewTicker(config.ReportInterval.Duration),
+		pollTicker:   time.NewTicker(config.PollInterval.Duration),
 		client:       client,
 		cfg:          config,
 	}

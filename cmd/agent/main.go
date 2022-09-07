@@ -9,6 +9,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/vleukhin/prom-light/internal/config"
+
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
@@ -21,7 +23,7 @@ var buildCommit = "N/A"
 
 func main() {
 	printIntro()
-	cfg := &internal.AgentConfig{}
+	cfg := &config.AgentConfig{}
 	if err := cfg.Parse(); err != nil {
 		log.Fatal().Msg(err.Error())
 	}
