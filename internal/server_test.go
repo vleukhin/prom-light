@@ -499,7 +499,7 @@ func TestServer_Start(t *testing.T) {
 	case err := <-ch:
 		t.Error(err)
 	default:
-		err = server.Stop()
+		err = server.Stop(context.Background())
 		if err != nil {
 			t.Error(err)
 		}
