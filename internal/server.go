@@ -28,6 +28,7 @@ type MetricsServer struct {
 	str        storage.MetricsStorage
 	hasher     hash.Hash
 	PrivateKey *rsa.PrivateKey
+	httpServer *http.Server
 }
 
 // NewMetricsServer создает новый сервер сбора метрик
@@ -55,6 +56,7 @@ func NewMetricsServer(config *config.ServerConfig) (*MetricsServer, error) {
 		str,
 		nil,
 		nil,
+		nil,
 	}
 
 	if err := server.setPrivateKey(); err != nil {
@@ -69,6 +71,9 @@ func NewMetricsServer(config *config.ServerConfig) (*MetricsServer, error) {
 	if config.Key != "" {
 		server.hasher = hmac.New(sha256.New, []byte(config.Key))
 	}
+
+	router := NewRouter(str, server.hasher, server.PrivateKey)
+	server.httpServer = &http.Server{Addr: config.Addr, Handler: router}
 
 	return &server, nil
 }
@@ -88,12 +93,16 @@ func (s *MetricsServer) setPrivateKey() error {
 // Run запукает сервер сбора метрик
 func (s *MetricsServer) Run(err chan<- error) {
 	log.Info().Msg("Metrics server listen at: " + s.cfg.Addr)
-	err <- http.ListenAndServe(s.cfg.Addr, NewRouter(s.str, s.hasher, s.PrivateKey))
+	err <- s.httpServer.ListenAndServe()
 }
 
 // Stop останавливает сервер сбора метрик
-func (s *MetricsServer) Stop() error {
-	return s.str.ShutDown(context.TODO())
+func (s *MetricsServer) Stop(ctx context.Context) error {
+	if err := s.httpServer.Shutdown(ctx); err != nil {
+		return err
+	}
+
+	return s.str.ShutDown(ctx)
 }
 
 // NewRouter создает новый роутер

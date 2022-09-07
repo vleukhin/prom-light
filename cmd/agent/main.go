@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/vleukhin/prom-light/internal/config"
 
@@ -54,7 +55,9 @@ func main() {
 	case <-sigChan:
 		cancel()
 		log.Info().Msg("Terminating...")
-		agent.Stop()
+		ctx, stopCancel := context.WithTimeout(context.Background(), time.Second*5)
+		agent.Stop(ctx)
+		stopCancel()
 		return
 	case err := <-errChan:
 		log.Error().Msg("Server error: " + err.Error())

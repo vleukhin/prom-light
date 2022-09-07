@@ -104,14 +104,14 @@ reportLoop:
 		}
 	}
 
-	c.Stop()
+	c.Stop(ctx)
 }
 
 func (c *Agent) poll(ctx context.Context, metricsCh chan<- metrics.Metrics) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error().Msgf("poll() panics: %v", r)
-			c.Stop()
+			c.Stop(ctx)
 		}
 	}()
 	for {
@@ -135,7 +135,7 @@ func (c *Agent) storeMetrics(ctx context.Context, metricsCh chan metrics.Metrics
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error().Msgf("storeMetrics() panics: %v", r)
-			c.Stop()
+			c.Stop(ctx)
 		}
 	}()
 	for m := range metricsCh {
@@ -147,8 +147,9 @@ func (c *Agent) storeMetrics(ctx context.Context, metricsCh chan metrics.Metrics
 }
 
 // Stop останавливает сбор и отправку метрик
-func (c *Agent) Stop() {
+func (c *Agent) Stop(ctx context.Context) {
 	log.Info().Msg("Stopping agent")
+	c.report(ctx)
 	c.reportTicker.Stop()
 	c.cancel()
 }

@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/vleukhin/prom-light/internal/config"
 
@@ -43,9 +45,11 @@ func main() {
 
 	go server.Run(errChan)
 	defer func(server *internal.MetricsServer) {
-		err := server.Stop()
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		err := server.Stop(ctx)
+		cancel()
 		if err != nil {
-			panic(err)
+			log.Fatal().Err(err)
 		}
 	}(server)
 

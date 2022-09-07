@@ -44,7 +44,7 @@ func (cfg *AgentConfig) Parse() error {
 	cfg.LogLevel = *logLevel
 	cfg.CryptoKey = *cryptoKey
 
-	err = env.Parse(cfg)
+	err = env.ParseWithFuncs(cfg, parseFuncs())
 	if err != nil {
 		return err
 	}
