@@ -1,16 +1,22 @@
 package internal
 
 import (
-	"compress/gzip"
 	"context"
 	"crypto/hmac"
+	"crypto/rsa"
 	"crypto/sha256"
 	"hash"
 	"net/http"
-	"strings"
+	"os"
+
+	"github.com/pkg/errors"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
+
+	"github.com/vleukhin/prom-light/internal/config"
+	"github.com/vleukhin/prom-light/internal/crypt"
+	"github.com/vleukhin/prom-light/internal/middlewares"
 
 	"github.com/vleukhin/prom-light/internal/handlers"
 	"github.com/vleukhin/prom-light/internal/storage"
@@ -18,35 +24,28 @@ import (
 
 // MetricsServer описывает сервер сбора метрик
 type MetricsServer struct {
-	cfg    *ServerConfig
-	str    storage.MetricsStorage
-	hasher hash.Hash
-}
-
-type gzipWriter struct {
-	http.ResponseWriter
-	Writer *gzip.Writer
-}
-
-func (w gzipWriter) Write(b []byte) (int, error) {
-	return w.Writer.Write(b)
+	cfg        *config.ServerConfig
+	str        storage.MetricsStorage
+	hasher     hash.Hash
+	PrivateKey *rsa.PrivateKey
+	httpServer *http.Server
 }
 
 // NewMetricsServer создает новый сервер сбора метрик
-func NewMetricsServer(config *ServerConfig) (MetricsServer, error) {
+func NewMetricsServer(config *config.ServerConfig) (*MetricsServer, error) {
 	var err error
 	var str storage.MetricsStorage
 
 	switch true {
 	case config.DSN != "":
-		str, err = storage.NewPostgresStorage(config.DSN, config.DBConnTimeout)
+		str, err = storage.NewPostgresStorage(config.DSN, config.DBConnTimeout.Duration)
 		if err != nil {
-			return MetricsServer{}, err
+			return nil, err
 		}
 	case config.StoreFile != "":
-		str, err = storage.NewFileStorage(config.StoreFile, config.StoreInterval, config.Restore)
+		str, err = storage.NewFileStorage(config.StoreFile, config.StoreInterval.Duration, config.Restore)
 		if err != nil {
-			return MetricsServer{}, err
+			return nil, err
 		}
 	default:
 		str = storage.NewMemoryStorage()
@@ -56,33 +55,58 @@ func NewMetricsServer(config *ServerConfig) (MetricsServer, error) {
 		config,
 		str,
 		nil,
+		nil,
+		nil,
+	}
+
+	if err := server.setPrivateKey(); err != nil {
+		return nil, errors.Wrap(err, "failed to set private key")
 	}
 
 	err = server.migrate()
 	if err != nil {
-		return MetricsServer{}, err
+		return nil, err
 	}
 
 	if config.Key != "" {
 		server.hasher = hmac.New(sha256.New, []byte(config.Key))
 	}
 
-	return server, nil
+	router := NewRouter(str, server.hasher, server.PrivateKey)
+	server.httpServer = &http.Server{Addr: config.Addr, Handler: router}
+
+	return &server, nil
+}
+
+func (s *MetricsServer) setPrivateKey() error {
+	if s.cfg.CryptoKey == "" {
+		return nil
+	}
+	b, err := os.ReadFile(s.cfg.CryptoKey)
+	if err != nil {
+		return err
+	}
+	s.PrivateKey, err = crypt.BytesToPrivateKey(b)
+	return err
 }
 
 // Run запукает сервер сбора метрик
-func (s MetricsServer) Run(err chan<- error) {
+func (s *MetricsServer) Run(err chan<- error) {
 	log.Info().Msg("Metrics server listen at: " + s.cfg.Addr)
-	err <- http.ListenAndServe(s.cfg.Addr, NewRouter(s.str, s.hasher))
+	err <- s.httpServer.ListenAndServe()
 }
 
 // Stop останавливает сервер сбора метрик
-func (s MetricsServer) Stop() error {
-	return s.str.ShutDown(context.TODO())
+func (s *MetricsServer) Stop(ctx context.Context) error {
+	if err := s.httpServer.Shutdown(ctx); err != nil {
+		return err
+	}
+
+	return s.str.ShutDown(ctx)
 }
 
 // NewRouter создает новый роутер
-func NewRouter(str storage.MetricsStorage, hasher hash.Hash) *mux.Router {
+func NewRouter(str storage.MetricsStorage, hasher hash.Hash, key *rsa.PrivateKey) *mux.Router {
 	homeHandler := handlers.NewHomeHandler(str)
 	updateHandler := handlers.NewUpdateMetricHandler(str)
 	updateJSONHandler := handlers.NewUpdateMetricJSONHandler(str, hasher)
@@ -91,7 +115,8 @@ func NewRouter(str storage.MetricsStorage, hasher hash.Hash) *mux.Router {
 	getJSONHandler := handlers.NewGetMetricJSONHandler(str, hasher)
 
 	r := mux.NewRouter()
-	r.Use(gzipEncode)
+	r.Use(middlewares.GZIPEncode)
+	r.Use(middlewares.NewDecryptMiddleware(key).Handle)
 	r.Handle("/", homeHandler).Methods(http.MethodGet, http.MethodHead)
 	r.Handle("/update/", updateJSONHandler).Methods(http.MethodPost)
 	r.Handle("/updates/", updateBatchHandler).Methods(http.MethodPost)
@@ -105,31 +130,6 @@ func NewRouter(str storage.MetricsStorage, hasher hash.Hash) *mux.Router {
 	return r
 }
 
-func gzipEncode(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		gz, err := gzip.NewWriterLevel(w, gzip.BestCompression)
-		if err != nil {
-			log.Error().Msg("Failed to create gzip writer: " + err.Error())
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		defer func(gz *gzip.Writer) {
-			err := gz.Close()
-			if err != nil {
-				log.Error().Msg("Failed to close gzip writer: " + err.Error())
-			}
-		}(gz)
-
-		w.Header().Set("Content-Encoding", "gzip")
-		next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gz}, r)
-	})
-}
-
 func pingHandler(store storage.MetricsStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := store.Ping(r.Context())
@@ -140,6 +140,6 @@ func pingHandler(store storage.MetricsStorage) http.HandlerFunc {
 	}
 }
 
-func (s MetricsServer) migrate() error {
+func (s *MetricsServer) migrate() error {
 	return s.str.Migrate(context.Background())
 }

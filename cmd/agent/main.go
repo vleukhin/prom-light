@@ -8,6 +8,9 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
+
+	"github.com/vleukhin/prom-light/internal/config"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -21,7 +24,7 @@ var buildCommit = "N/A"
 
 func main() {
 	printIntro()
-	cfg := &internal.AgentConfig{}
+	cfg := &config.AgentConfig{}
 	if err := cfg.Parse(); err != nil {
 		log.Fatal().Msg(err.Error())
 	}
@@ -33,7 +36,10 @@ func main() {
 
 	zerolog.SetGlobalLevel(logLevel)
 
-	agent := internal.NewAgent(cfg)
+	agent, err := internal.NewAgent(cfg)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create agent")
+	}
 	mainCtx, cancel := context.WithCancel(context.Background())
 	go agent.Start(mainCtx, cancel)
 	errChan := make(chan error)
@@ -49,7 +55,9 @@ func main() {
 	case <-sigChan:
 		cancel()
 		log.Info().Msg("Terminating...")
-		agent.Stop()
+		ctx, stopCancel := context.WithTimeout(context.Background(), time.Second*5)
+		agent.Stop(ctx)
+		stopCancel()
 		return
 	case err := <-errChan:
 		log.Error().Msg("Server error: " + err.Error())

@@ -4,15 +4,21 @@ import (
 	"bytes"
 	"context"
 	"crypto/hmac"
+	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"hash"
-	"math/rand"
+	mrand "math/rand"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
+
+	"github.com/vleukhin/prom-light/internal/config"
+
+	"github.com/vleukhin/prom-light/internal/crypt"
 
 	"github.com/rs/zerolog/log"
 
@@ -32,25 +38,30 @@ type Agent struct {
 	reportTicker *time.Ticker
 	pollTicker   *time.Ticker
 	client       http.Client
-	cfg          *AgentConfig
+	cfg          *config.AgentConfig
 	pollers      []Poller
 	hasher       hash.Hash
 	cancel       context.CancelFunc
+	publicKey    *rsa.PublicKey
 }
 
 // NewAgent создаёт новый агент для сбора метрик
-func NewAgent(config *AgentConfig) Agent {
-	rand.Seed(time.Now().Unix())
+func NewAgent(config *config.AgentConfig) (*Agent, error) {
+	mrand.Seed(time.Now().Unix())
 
 	client := http.Client{}
-	client.Timeout = config.ReportTimeout
+	client.Timeout = config.ReportTimeout.Duration
 
 	agent := Agent{
 		storage:      storage.NewMemoryStorage(),
-		reportTicker: time.NewTicker(config.ReportInterval),
-		pollTicker:   time.NewTicker(config.PollInterval),
+		reportTicker: time.NewTicker(config.ReportInterval.Duration),
+		pollTicker:   time.NewTicker(config.PollInterval.Duration),
 		client:       client,
 		cfg:          config,
+	}
+
+	if err := agent.setPublicKey(); err != nil {
+		return nil, err
 	}
 
 	if config.Key != "" {
@@ -60,7 +71,19 @@ func NewAgent(config *AgentConfig) Agent {
 	agent.pollers = append(agent.pollers, pollers.MemStatsPoller{})
 	agent.pollers = append(agent.pollers, pollers.PsPoller{})
 
-	return agent
+	return &agent, nil
+}
+
+func (c *Agent) setPublicKey() error {
+	if c.cfg.CryptoKey == "" {
+		return nil
+	}
+	b, err := os.ReadFile(c.cfg.CryptoKey)
+	if err != nil {
+		return err
+	}
+	c.publicKey, err = crypt.BytesToPublicKey(b)
+	return err
 }
 
 // Start запускает сбор и отправку метрик
@@ -81,14 +104,14 @@ reportLoop:
 		}
 	}
 
-	c.Stop()
+	c.Stop(ctx)
 }
 
 func (c *Agent) poll(ctx context.Context, metricsCh chan<- metrics.Metrics) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error().Msgf("poll() panics: %v", r)
-			c.Stop()
+			c.Stop(ctx)
 		}
 	}()
 	for {
@@ -112,7 +135,7 @@ func (c *Agent) storeMetrics(ctx context.Context, metricsCh chan metrics.Metrics
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error().Msgf("storeMetrics() panics: %v", r)
-			c.Stop()
+			c.Stop(ctx)
 		}
 	}()
 	for m := range metricsCh {
@@ -124,8 +147,9 @@ func (c *Agent) storeMetrics(ctx context.Context, metricsCh chan metrics.Metrics
 }
 
 // Stop останавливает сбор и отправку метрик
-func (c *Agent) Stop() {
+func (c *Agent) Stop(ctx context.Context) {
 	log.Info().Msg("Stopping agent")
+	c.report(ctx)
 	c.reportTicker.Stop()
 	c.cancel()
 }
@@ -178,7 +202,7 @@ func (c *Agent) sendReportRequest(m metrics.Metric) error {
 
 // sendReportRequest отправляет batch запрос на сервер метрик
 func (c *Agent) sendReportBatchRequest(m metrics.Metrics) error {
-	data, err := json.Marshal(m.Sign(c.hasher))
+	data, err := c.encrypt(m)
 	if err != nil {
 		return err
 	}
@@ -196,4 +220,18 @@ func (c *Agent) sendReportBatchRequest(m metrics.Metrics) error {
 	}
 
 	return nil
+}
+
+// encrypt encrypts metrics with public key
+func (c *Agent) encrypt(m metrics.Metrics) ([]byte, error) {
+	data, err := json.Marshal(m.Sign(c.hasher))
+	if err != nil {
+		return nil, err
+	}
+
+	if c.publicKey == nil {
+		return data, nil
+	}
+
+	return crypt.EncryptOAEP(c.publicKey, data, nil)
 }
