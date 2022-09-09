@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"hash"
+	"net"
 	"net/http"
 	"os"
 
@@ -72,7 +73,7 @@ func NewMetricsServer(config *config.ServerConfig) (*MetricsServer, error) {
 		server.hasher = hmac.New(sha256.New, []byte(config.Key))
 	}
 
-	router := NewRouter(str, server.hasher, server.PrivateKey)
+	router := NewRouter(str, server.hasher, server.PrivateKey, server.cfg.TrustedSubnet)
 	server.httpServer = &http.Server{Addr: config.Addr, Handler: router}
 
 	return &server, nil
@@ -106,7 +107,7 @@ func (s *MetricsServer) Stop(ctx context.Context) error {
 }
 
 // NewRouter создает новый роутер
-func NewRouter(str storage.MetricsStorage, hasher hash.Hash, key *rsa.PrivateKey) *mux.Router {
+func NewRouter(str storage.MetricsStorage, hasher hash.Hash, key *rsa.PrivateKey, trustedSunnet net.IPNet) *mux.Router {
 	homeHandler := handlers.NewHomeHandler(str)
 	updateHandler := handlers.NewUpdateMetricHandler(str)
 	updateJSONHandler := handlers.NewUpdateMetricJSONHandler(str, hasher)
@@ -117,6 +118,9 @@ func NewRouter(str storage.MetricsStorage, hasher hash.Hash, key *rsa.PrivateKey
 	r := mux.NewRouter()
 	r.Use(middlewares.GZIPEncode)
 	r.Use(middlewares.NewDecryptMiddleware(key).Handle)
+	if trustedSunnet.IP != nil {
+		r.Use(middlewares.NewTrustedIPsMiddleware(trustedSunnet).Handle)
+	}
 	r.Handle("/", homeHandler).Methods(http.MethodGet, http.MethodHead)
 	r.Handle("/update/", updateJSONHandler).Methods(http.MethodPost)
 	r.Handle("/updates/", updateBatchHandler).Methods(http.MethodPost)

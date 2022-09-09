@@ -7,14 +7,16 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"hash"
 	mrand "math/rand"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/vleukhin/prom-light/internal/config"
 
@@ -43,6 +45,7 @@ type Agent struct {
 	hasher       hash.Hash
 	cancel       context.CancelFunc
 	publicKey    *rsa.PublicKey
+	IP           net.IP
 }
 
 // NewAgent создаёт новый агент для сбора метрик
@@ -52,12 +55,18 @@ func NewAgent(config *config.AgentConfig) (*Agent, error) {
 	client := http.Client{}
 	client.Timeout = config.ReportTimeout.Duration
 
+	addr, err := detectIP()
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to detect host IP")
+	}
+
 	agent := Agent{
 		storage:      storage.NewMemoryStorage(),
 		reportTicker: time.NewTicker(config.ReportInterval.Duration),
 		pollTicker:   time.NewTicker(config.PollInterval.Duration),
 		client:       client,
 		cfg:          config,
+		IP:           addr.IP,
 	}
 
 	if err := agent.setPublicKey(); err != nil {
@@ -185,19 +194,7 @@ func (c *Agent) sendReportRequest(m metrics.Metric) error {
 		return err
 	}
 
-	resp, err := c.client.Post(fmt.Sprintf("http://%s/update/", c.cfg.ServerAddr), "application/json", bytes.NewBuffer(data))
-	if err != nil {
-		return err
-	}
-	err = resp.Body.Close()
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return errors.New("bad response while reporting: " + strconv.Itoa(resp.StatusCode))
-	}
-
-	return nil
+	return c.sendRequest("/update", data)
 }
 
 // sendReportRequest отправляет batch запрос на сервер метрик
@@ -207,7 +204,17 @@ func (c *Agent) sendReportBatchRequest(m metrics.Metrics) error {
 		return err
 	}
 
-	resp, err := c.client.Post(fmt.Sprintf("http://%s/updates/", c.cfg.ServerAddr), "application/json", bytes.NewBuffer(data))
+	return c.sendRequest("/updates", data)
+}
+
+// sendRequest отправляет запрос на сервер метрик
+func (c *Agent) sendRequest(endpoint string, data []byte) error {
+	r, err := http.NewRequest(http.MethodPost, fmt.Sprintf("http://%s%s/", c.cfg.ServerAddr, endpoint), bytes.NewBuffer(data))
+	r.Header.Set(config.XRealIPHeader, c.IP.String())
+	if err != nil {
+		return err
+	}
+	resp, err := c.client.Do(r)
 	if err != nil {
 		return err
 	}
@@ -234,4 +241,14 @@ func (c *Agent) encrypt(m metrics.Metrics) ([]byte, error) {
 	}
 
 	return crypt.EncryptOAEP(c.publicKey, data, nil)
+}
+
+func detectIP() (*net.UDPAddr, error) {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	// handle err...
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+	return conn.LocalAddr().(*net.UDPAddr), nil
 }
