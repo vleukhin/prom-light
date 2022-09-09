@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"errors"
+	"net"
 	"os"
 	"reflect"
 	"time"
@@ -15,6 +16,8 @@ import (
 type Duration struct {
 	time.Duration
 }
+
+const XRealIPHeader = "X-Real-IP"
 
 func (d *Duration) UnmarshalJSON(b []byte) error {
 	var v interface{}
@@ -64,6 +67,13 @@ func parseFuncs() map[reflect.Type]env.ParserFunc {
 			}
 
 			return Duration{d}, nil
+		},
+		reflect.TypeOf(net.IPNet{}): func(v string) (interface{}, error) {
+			_, subnet, err := net.ParseCIDR(v)
+			if err != nil {
+				return nil, err
+			}
+			return *subnet, nil
 		},
 	}
 }

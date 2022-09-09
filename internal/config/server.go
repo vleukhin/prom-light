@@ -1,6 +1,7 @@
 package config
 
 import (
+	"net"
 	"time"
 
 	"github.com/caarlos0/env/v6"
@@ -9,15 +10,16 @@ import (
 
 // ServerConfig описывает конфиг сервера
 type ServerConfig struct {
-	Addr          string   `env:"ADDRESS" json:"address"`
-	Restore       bool     `env:"RESTORE" json:"restore"`
-	StoreFile     string   `env:"STORE_FILE" json:"store_file"`
-	StoreInterval Duration `env:"STORE_INTERVAL" json:"store_interval"`
-	Key           string   `env:"KEY" json:"hash_key"`
-	DSN           string   `env:"DATABASE_DSN" json:"database_dsn"`
-	DBConnTimeout Duration `env:"DB_CONN_TIMEOUT" envDefault:"5s" json:"db_conn_timeout"`
-	LogLevel      string   `env:"LOG_LEVEL" json:"log_level"`
-	CryptoKey     string   `env:"CRYPTO_KEY" json:"crypto_key"`
+	Addr          string    `env:"ADDRESS" json:"address"`
+	Restore       bool      `env:"RESTORE" json:"restore"`
+	StoreFile     string    `env:"STORE_FILE" json:"store_file"`
+	StoreInterval Duration  `env:"STORE_INTERVAL" json:"store_interval"`
+	Key           string    `env:"KEY" json:"hash_key"`
+	DSN           string    `env:"DATABASE_DSN" json:"database_dsn"`
+	DBConnTimeout Duration  `env:"DB_CONN_TIMEOUT" envDefault:"5s" json:"db_conn_timeout"`
+	LogLevel      string    `env:"LOG_LEVEL" json:"log_level"`
+	CryptoKey     string    `env:"CRYPTO_KEY" json:"crypto_key"`
+	TrustedSubnet net.IPNet `env:"TRUSTED_SUBNET" json:"trusted_subnet"`
 }
 
 func (cfg *ServerConfig) Parse() error {
@@ -33,6 +35,7 @@ func (cfg *ServerConfig) Parse() error {
 	dsn := pflag.StringP("database-dsn", "d", "", "Database connection string")
 	logLevel := pflag.StringP("log-level", "l", "info", "Setup log level")
 	cryptoKey := pflag.StringP("crypto-key", "e", "", "Path to private key")
+	trustedSubnet := pflag.IPNetP("trusted-subnet", "t", net.IPNet{}, "CIDR for trusted subnet")
 
 	pflag.Parse()
 
@@ -44,6 +47,7 @@ func (cfg *ServerConfig) Parse() error {
 	cfg.DSN = *dsn
 	cfg.LogLevel = *logLevel
 	cfg.CryptoKey = *cryptoKey
+	cfg.TrustedSubnet = *trustedSubnet
 
 	err = env.ParseWithFuncs(cfg, parseFuncs())
 	if err != nil {

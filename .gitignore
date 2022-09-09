@@ -31,3 +31,4 @@ devopstest
 keys
 
 config
+.env
