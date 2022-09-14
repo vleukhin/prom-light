@@ -10,12 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/vleukhin/prom-light/internal/config"
-
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/vleukhin/prom-light/internal"
+	"github.com/vleukhin/prom-light/internal/agent"
+	"github.com/vleukhin/prom-light/internal/config"
 )
 
 var buildVersion = "N/A"
@@ -36,7 +35,7 @@ func main() {
 
 	zerolog.SetGlobalLevel(logLevel)
 
-	agent, err := internal.NewAgent(cfg)
+	agent, err := agent.NewAgent(cfg)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create agent")
 	}
