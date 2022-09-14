@@ -11,7 +11,7 @@ import (
 )
 
 func TestAgent_Start(t *testing.T) {
-	agent, err := NewAgent(&config.AgentConfig{
+	agent, err := NewApp(&config.AgentConfig{
 		PollInterval:   config.Duration{Duration: 50 * time.Millisecond},
 		ReportInterval: config.Duration{Duration: 50 * time.Millisecond},
 	})

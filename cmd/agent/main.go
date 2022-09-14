@@ -35,12 +35,12 @@ func main() {
 
 	zerolog.SetGlobalLevel(logLevel)
 
-	agent, err := agent.NewAgent(cfg)
+	app, err := agent.NewApp(cfg)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to create agent")
+		log.Fatal().Err(err).Msg("Failed to create app")
 	}
 	mainCtx, cancel := context.WithCancel(context.Background())
-	go agent.Start(mainCtx, cancel)
+	go app.Start(mainCtx, cancel)
 	errChan := make(chan error)
 	go func() {
 		errChan <- http.ListenAndServe("localhost:8888", nil)
@@ -55,13 +55,13 @@ func main() {
 		cancel()
 		log.Info().Msg("Terminating...")
 		ctx, stopCancel := context.WithTimeout(context.Background(), time.Second*5)
-		agent.Stop(ctx)
+		app.Stop(ctx)
 		stopCancel()
 		return
 	case err := <-errChan:
 		log.Error().Msg("Server error: " + err.Error())
 	case <-mainCtx.Done():
-		log.Info().Msg("Application stopped by agent...")
+		log.Info().Msg("Application stopped by app...")
 	}
 }
 
