@@ -1,4 +1,4 @@
-package handlers
+package http_handlers
 
 import (
 	"embed"
@@ -14,19 +14,19 @@ import (
 //go:embed templates
 var templates embed.FS
 
-// HomeHandler хэндлер для просмотра метрик
-type HomeHandler struct {
+// HomeHandlerController хэндлер для просмотра метрик
+type HomeHandlerController struct {
 	store storage.MetricsGetter
 }
 
 // NewHomeHandler создаёт новый хэндлер для просмотра метрик
-func NewHomeHandler(storage storage.MetricsGetter) HomeHandler {
-	return HomeHandler{
+func NewHomeHandler(storage storage.MetricsGetter) HomeHandlerController {
+	return HomeHandlerController{
 		store: storage,
 	}
 }
 
-func (h HomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h HomeHandlerController) Home(w http.ResponseWriter, r *http.Request) {
 	tpl, err := template.ParseFS(templates, "templates/home.gohtml")
 	if err != nil {
 		log.Error().Msg("Template not found: " + err.Error())

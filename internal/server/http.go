@@ -3,7 +3,7 @@ package server
 import (
 	"crypto/rsa"
 	"github.com/gorilla/mux"
-	"github.com/vleukhin/prom-light/internal/handlers"
+	"github.com/vleukhin/prom-light/internal/http-handlers"
 	"github.com/vleukhin/prom-light/internal/middlewares"
 	"github.com/vleukhin/prom-light/internal/storage"
 	"hash"
@@ -24,12 +24,8 @@ func NewHTTPServer(
 
 // NewRouter создает новый роутер
 func NewRouter(str storage.MetricsStorage, hasher hash.Hash, key *rsa.PrivateKey, trustedSubnet net.IPNet) *mux.Router {
-	homeHandler := handlers.NewHomeHandler(str)
-	updateHandler := handlers.NewUpdateMetricHandler(str)
-	updateJSONHandler := handlers.NewUpdateMetricJSONHandler(str, hasher)
-	updateBatchHandler := handlers.NewUpdateMetricsBatchHandler(str, hasher)
-	getHandler := handlers.NewGetMetricHandler(str)
-	getJSONHandler := handlers.NewGetMetricJSONHandler(str, hasher)
+	homeHandler := http_handlers.NewHomeHandler(str)
+	metricsController := http_handlers.NewMetricsController(str, hasher)
 
 	r := mux.NewRouter()
 	r.Use(middlewares.GZIPEncode)
@@ -37,12 +33,12 @@ func NewRouter(str storage.MetricsStorage, hasher hash.Hash, key *rsa.PrivateKey
 	if trustedSubnet.IP != nil {
 		r.Use(middlewares.NewTrustedIPsMiddleware(trustedSubnet).Handle)
 	}
-	r.Handle("/", homeHandler).Methods(http.MethodGet, http.MethodHead)
-	r.Handle("/update/", updateJSONHandler).Methods(http.MethodPost)
-	r.Handle("/updates/", updateBatchHandler).Methods(http.MethodPost)
-	r.Handle("/update/{type}/{name}/{value}", updateHandler).Methods(http.MethodPost)
-	r.Handle("/value/", getJSONHandler).Methods(http.MethodPost)
-	r.Handle("/value/{type}/{name}", getHandler).Methods(http.MethodGet, http.MethodHead)
+	r.Handle("/", http.HandlerFunc(homeHandler.Home)).Methods(http.MethodGet, http.MethodHead)
+	r.Handle("/update/", http.HandlerFunc(metricsController.UpdateMetricJSON)).Methods(http.MethodPost)
+	r.Handle("/updates/", http.HandlerFunc(metricsController.UpdateMetricsBatch)).Methods(http.MethodPost)
+	r.Handle("/update/{type}/{name}/{value}", http.HandlerFunc(metricsController.UpdateMetric)).Methods(http.MethodPost)
+	r.Handle("/value/", http.HandlerFunc(metricsController.GetMetric)).Methods(http.MethodPost)
+	r.Handle("/value/{type}/{name}", http.HandlerFunc(metricsController.GetMetricJSON)).Methods(http.MethodGet, http.MethodHead)
 	r.Handle("/ping", pingHandler(str)).Methods(http.MethodGet, http.MethodHead)
 
 	r.PathPrefix("/debug/pprof/").Handler(http.DefaultServeMux)
