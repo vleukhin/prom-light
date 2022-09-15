@@ -20,6 +20,7 @@ type ServerConfig struct {
 	LogLevel      string    `env:"LOG_LEVEL" json:"log_level"`
 	CryptoKey     string    `env:"CRYPTO_KEY" json:"crypto_key"`
 	TrustedSubnet net.IPNet `env:"TRUSTED_SUBNET" json:"trusted_subnet"`
+	Protocol      string    `env:"PROTOCOL" json:"protocol"`
 }
 
 func (cfg *ServerConfig) Parse() error {
@@ -36,6 +37,7 @@ func (cfg *ServerConfig) Parse() error {
 	logLevel := pflag.StringP("log-level", "l", "info", "Setup log level")
 	cryptoKey := pflag.StringP("crypto-key", "e", "", "Path to private key")
 	trustedSubnet := pflag.IPNetP("trusted-subnet", "t", net.IPNet{}, "CIDR for trusted subnet")
+	proto := pflag.StringP("protocol", "p", "http", "Server protocol (http or grpc")
 
 	pflag.Parse()
 
@@ -48,6 +50,7 @@ func (cfg *ServerConfig) Parse() error {
 	cfg.LogLevel = *logLevel
 	cfg.CryptoKey = *cryptoKey
 	cfg.TrustedSubnet = *trustedSubnet
+	cfg.Protocol = *proto
 
 	err = env.ParseWithFuncs(cfg, parseFuncs())
 	if err != nil {

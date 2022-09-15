@@ -55,6 +55,7 @@ func NewApp(cfg *config.ServerConfig) (*App, error) {
 
 func newServer(cfg *config.ServerConfig, str storage.MetricsStorage) (Server, error) {
 	var hasher hash.Hash
+	var server Server
 	if cfg.Key != "" {
 		hasher = hmac.New(sha256.New, []byte(cfg.Key))
 	}
@@ -64,7 +65,16 @@ func newServer(cfg *config.ServerConfig, str storage.MetricsStorage) (Server, er
 		return nil, err
 	}
 
-	return NewHTTPServer(cfg.Addr, str, hasher, privateKey, cfg.TrustedSubnet), nil
+	switch cfg.Protocol {
+	case config.ProtocolHTTP:
+		server = NewHTTPServer(cfg.Addr, str, hasher, privateKey, cfg.TrustedSubnet)
+	case config.ProtocolGRPC:
+		server = NewGRPCServer(str)
+	default:
+		return nil, errors.New("unknown protocol: " + cfg.Protocol)
+	}
+
+	return server, nil
 }
 
 func newStorage(cfg *config.ServerConfig) (storage.MetricsStorage, error) {
@@ -91,7 +101,7 @@ func newStorage(cfg *config.ServerConfig) (storage.MetricsStorage, error) {
 
 // Run запукает сервер сбора метрик
 func (s *App) Run(err chan<- error) {
-	log.Info().Msg("Metrics server listen at: " + s.cfg.Addr)
+	log.Info().Msgf("Metrics %s server listen at: %s", s.cfg.Protocol, s.cfg.Addr)
 	err <- s.server.ListenAndServe()
 }
 

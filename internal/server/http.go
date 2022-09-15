@@ -17,7 +17,7 @@ func NewHTTPServer(
 	hasher hash.Hash,
 	key *rsa.PrivateKey,
 	trustedSubnet net.IPNet,
-) *http.Server {
+) Server {
 	router := NewRouter(str, hasher, key, trustedSubnet)
 	return &http.Server{Addr: addr, Handler: router}
 }
@@ -37,8 +37,8 @@ func NewRouter(str storage.MetricsStorage, hasher hash.Hash, key *rsa.PrivateKey
 	r.Handle("/update/", http.HandlerFunc(metricsController.UpdateMetricJSON)).Methods(http.MethodPost)
 	r.Handle("/updates/", http.HandlerFunc(metricsController.UpdateMetricsBatch)).Methods(http.MethodPost)
 	r.Handle("/update/{type}/{name}/{value}", http.HandlerFunc(metricsController.UpdateMetric)).Methods(http.MethodPost)
-	r.Handle("/value/", http.HandlerFunc(metricsController.GetMetric)).Methods(http.MethodPost)
-	r.Handle("/value/{type}/{name}", http.HandlerFunc(metricsController.GetMetricJSON)).Methods(http.MethodGet, http.MethodHead)
+	r.Handle("/value/", http.HandlerFunc(metricsController.GetMetricJSON)).Methods(http.MethodPost)
+	r.Handle("/value/{type}/{name}", http.HandlerFunc(metricsController.GetMetric)).Methods(http.MethodGet, http.MethodHead)
 	r.Handle("/ping", pingHandler(str)).Methods(http.MethodGet, http.MethodHead)
 
 	r.PathPrefix("/debug/pprof/").Handler(http.DefaultServeMux)
