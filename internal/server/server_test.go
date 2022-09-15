@@ -485,7 +485,7 @@ func TestGetMetricJSONHandler_ServeHTTP(t *testing.T) {
 }
 
 func TestServer_Start(t *testing.T) {
-	server, err := NewMetricsServer(&config.ServerConfig{
+	server, err := NewApp(&config.ServerConfig{
 		Addr:      "localhost:9999",
 		StoreFile: "/tmp/server_test",
 	})

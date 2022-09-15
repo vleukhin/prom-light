@@ -88,3 +88,14 @@ func GetPublicKeyFromFile(file string) (*rsa.PublicKey, error) {
 	}
 	return BytesToPublicKey(b)
 }
+
+func GetPrivateKeyFromFile(file string) (*rsa.PrivateKey, error) {
+	if file == "" {
+		return nil, nil
+	}
+	b, err := os.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+	return BytesToPrivateKey(b)
+}

@@ -34,23 +34,23 @@ func main() {
 
 	zerolog.SetGlobalLevel(logLevel)
 
-	srv, err := server.NewMetricsServer(cfg)
+	app, err := server.NewApp(cfg)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to create srv")
+		log.Fatal().Err(err).Msg("Failed to create app")
 	}
 
 	errChan := make(chan error)
 	sigChan := make(chan os.Signal, 1)
 
-	go srv.Run(errChan)
-	defer func(server *server.MetricsServer) {
+	go app.Run(errChan)
+	defer func(server *server.App) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		err := server.Stop(ctx)
 		cancel()
 		if err != nil {
 			log.Fatal().Err(err)
 		}
-	}(srv)
+	}(app)
 
 	signal.Ignore(syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
