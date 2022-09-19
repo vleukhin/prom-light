@@ -488,6 +488,7 @@ func TestServer_Start(t *testing.T) {
 	server, err := NewApp(&config.ServerConfig{
 		Addr:      "localhost:9999",
 		StoreFile: "/tmp/server_test",
+		Protocol:  config.ProtocolHTTP,
 	})
 	if err != nil {
 		t.Error(err)

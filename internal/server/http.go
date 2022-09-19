@@ -8,7 +8,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	http_handlers "github.com/vleukhin/prom-light/internal/http-handlers"
+	httpHandlers "github.com/vleukhin/prom-light/internal/http-handlers"
 	"github.com/vleukhin/prom-light/internal/middlewares"
 	"github.com/vleukhin/prom-light/internal/storage"
 )
@@ -26,8 +26,8 @@ func NewHTTPServer(
 
 // NewRouter создает новый роутер
 func NewRouter(str storage.MetricsStorage, hasher hash.Hash, key *rsa.PrivateKey, trustedSubnet net.IPNet) *mux.Router {
-	homeHandler := http_handlers.NewHomeHandler(str)
-	metricsController := http_handlers.NewMetricsController(str, hasher)
+	homeHandler := httpHandlers.NewHomeHandler(str)
+	metricsController := httpHandlers.NewMetricsController(str, hasher)
 
 	r := mux.NewRouter()
 	r.Use(middlewares.GZIPEncode)

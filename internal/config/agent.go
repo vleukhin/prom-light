@@ -25,7 +25,7 @@ func (cfg *AgentConfig) Parse() error {
 	if err != nil {
 		return err
 	}
-	serverAddr := pflag.StringP("addr", "a", "127.0.0.1:3200", "Server address")
+	serverAddr := pflag.StringP("addr", "a", "localhost:8080", "Server address")
 	pollInterval := pflag.DurationP("poll-interval", "p", 2*time.Second, "Poll interval")
 	reportInterval := pflag.DurationP("report-interval", "r", 10*time.Second, "Report interval")
 	reportTimeout := pflag.DurationP("report-timeout", "t", 1*time.Second, "Report timeout")
