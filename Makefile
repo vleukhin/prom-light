@@ -25,6 +25,11 @@ build-staticlint:
 lint:
 	docker run --rm -v $(curr_dir):/app -w /app golangci/golangci-lint:v1.45.2 golangci-lint run -v
 
+proto-gen:
+	protoc --go_out=. --go_opt=paths=source_relative \
+      --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+      ./internal/proto/metrics.proto
+
 tests: build tests-inc-1 tests-inc-2 tests-inc-3 tests-inc-4 tests-inc-5 tests-inc-6 tests-inc-7 tests-inc-8
 
 tests-inc-1:

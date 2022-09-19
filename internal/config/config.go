@@ -19,6 +19,11 @@ type Duration struct {
 
 const XRealIPHeader = "X-Real-IP"
 
+const (
+	ProtocolHTTP = "http"
+	ProtocolGRPC = "grpc"
+)
+
 func (d *Duration) UnmarshalJSON(b []byte) error {
 	var v interface{}
 	if err := json.Unmarshal(b, &v); err != nil {

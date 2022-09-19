@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"os"
 )
 
 // BytesToPublicKey bytes to public key
@@ -75,4 +76,26 @@ func DecryptOAEP(private *rsa.PrivateKey, msg []byte, label []byte) ([]byte, err
 	}
 
 	return decryptedBytes, nil
+}
+
+func GetPublicKeyFromFile(file string) (*rsa.PublicKey, error) {
+	if file == "" {
+		return nil, nil
+	}
+	b, err := os.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+	return BytesToPublicKey(b)
+}
+
+func GetPrivateKeyFromFile(file string) (*rsa.PrivateKey, error) {
+	if file == "" {
+		return nil, nil
+	}
+	b, err := os.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+	return BytesToPrivateKey(b)
 }
