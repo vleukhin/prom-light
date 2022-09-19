@@ -28,7 +28,7 @@ func (cfg *ServerConfig) Parse() error {
 	if err != nil {
 		return err
 	}
-	addr := pflag.StringP("addr", "a", "localhost:8080", "Server address")
+	addr := pflag.StringP("addr", "a", "127.0.0.1:3200", "Server address")
 	restore := pflag.BoolP("restore", "r", true, "Restore data on start up")
 	storeInterval := pflag.DurationP("store-interval", "i", 1*time.Minute, "Store interval. 0 enables sync mode")
 	storeFile := pflag.StringP("file", "f", "/tmp/devops-metrics-db.json", "Path for file storage. Empty value disables file storage")

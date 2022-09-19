@@ -3,13 +3,15 @@ package http_handlers
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/rs/zerolog/log"
-	"github.com/vleukhin/prom-light/internal/metrics"
 	"hash"
 	"io"
 	"net/http"
 	"strconv"
+
+	"github.com/gorilla/mux"
+	"github.com/rs/zerolog/log"
+
+	"github.com/vleukhin/prom-light/internal/metrics"
 
 	"github.com/vleukhin/prom-light/internal/storage"
 )

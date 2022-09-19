@@ -28,8 +28,9 @@ type Poller interface {
 }
 
 type Client interface {
-	SendMetricToServer(m metrics.Metric) error
-	SendBatchMetricsToServer(m metrics.Metrics) error
+	SendMetricToServer(ctx context.Context, m metrics.Metric) error
+	SendBatchMetricsToServer(ctx context.Context, m metrics.Metrics) error
+	ShutDown() error
 }
 
 // App описывает агент для сбра метрик
@@ -72,6 +73,7 @@ func NewApp(config *config.AgentConfig) (*App, error) {
 }
 
 func newClient(cfg *config.AgentConfig) (Client, error) {
+	var client Client
 	addr, err := detectIP()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to detect host IP")
@@ -81,13 +83,25 @@ func newClient(cfg *config.AgentConfig) (Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	client := NewHTTPClient(cfg.ServerAddr, addr.IP, cfg.ReportTimeout.Duration, key)
+
+	switch cfg.Protocol {
+	case config.ProtocolHTTP:
+		client = NewHTTPClient(cfg.ServerAddr, addr.IP, cfg.ReportTimeout.Duration, key)
+	case config.ProtocolGRPC:
+		client, err = NewGRPCClient(cfg.ServerAddr)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to create GRPC client")
+		}
+	default:
+		return nil, errors.New("unknown protocol: " + cfg.Protocol)
+	}
 
 	return client, nil
 }
 
 // Start запускает сбор и отправку метрик
 func (c *App) Start(ctx context.Context, cancel context.CancelFunc) {
+	log.Info().Msgf("%s agent started", c.cfg.Protocol)
 	c.cancel = cancel
 	metricsCh := make(chan metrics.Metrics)
 
@@ -151,6 +165,10 @@ func (c *App) Stop(ctx context.Context) {
 	log.Info().Msg("Stopping agent")
 	c.report(ctx)
 	c.reportTicker.Stop()
+	err := c.client.ShutDown()
+	if err != nil {
+		log.Error().Err(err).Msg("got error while stopping client")
+	}
 	c.cancel()
 }
 
@@ -163,13 +181,13 @@ func (c *App) report(ctx context.Context) {
 	log.Info().Msg("Sending metrics")
 	mtrcs = mtrcs.Sign(c.hasher)
 	if c.cfg.BatchMode {
-		err := c.client.SendBatchMetricsToServer(mtrcs)
+		err := c.client.SendBatchMetricsToServer(ctx, mtrcs)
 		if err != nil {
 			log.Error().Msg("Error occurred while reporting batch of metrics:" + err.Error())
 		}
 	} else {
 		for _, m := range mtrcs {
-			err := c.client.SendMetricToServer(m)
+			err := c.client.SendMetricToServer(ctx, m)
 			if err != nil {
 				log.Error().Msg("Error occurred while reporting " + m.Name + " metric:" + err.Error())
 			}

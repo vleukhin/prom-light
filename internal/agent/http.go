@@ -2,15 +2,17 @@ package agent
 
 import (
 	"bytes"
+	"context"
 	"crypto/rsa"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/vleukhin/prom-light/internal/crypt"
 	"net"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/vleukhin/prom-light/internal/crypt"
 
 	"github.com/vleukhin/prom-light/internal/config"
 	"github.com/vleukhin/prom-light/internal/metrics"
@@ -35,28 +37,28 @@ func NewHTTPClient(serverAddr string, IP net.IP, timeout time.Duration, key *rsa
 }
 
 // SendMetricToServer отправляет запрос на сервер метрик
-func (c *httpClient) SendMetricToServer(m metrics.Metric) error {
+func (c *httpClient) SendMetricToServer(ctx context.Context, m metrics.Metric) error {
 	data, err := json.Marshal(m)
 	if err != nil {
 		return err
 	}
 
-	return c.sendRequest("/update", data)
+	return c.sendRequest(ctx, "/update", data)
 }
 
 // SendBatchMetricsToServer отправляет batch запрос на сервер метрик
-func (c *httpClient) SendBatchMetricsToServer(m metrics.Metrics) error {
+func (c *httpClient) SendBatchMetricsToServer(ctx context.Context, m metrics.Metrics) error {
 	data, err := c.encrypt(m)
 	if err != nil {
 		return err
 	}
 
-	return c.sendRequest("/updates", data)
+	return c.sendRequest(ctx, "/updates", data)
 }
 
 // sendRequest отправляет запрос на сервер метрик
-func (c *httpClient) sendRequest(endpoint string, data []byte) error {
-	r, err := http.NewRequest(http.MethodPost, fmt.Sprintf("http://%s%s/", c.serverAddr, endpoint), bytes.NewBuffer(data))
+func (c *httpClient) sendRequest(ctx context.Context, endpoint string, data []byte) error {
+	r, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://%s%s/", c.serverAddr, endpoint), bytes.NewBuffer(data))
 	r.Header.Set(config.XRealIPHeader, c.IP.String())
 	if err != nil {
 		return err
@@ -88,4 +90,8 @@ func (c *httpClient) encrypt(m metrics.Metrics) ([]byte, error) {
 	}
 
 	return crypt.EncryptOAEP(c.key, data, nil)
+}
+
+func (c *httpClient) ShutDown() error {
+	return nil
 }

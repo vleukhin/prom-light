@@ -2,13 +2,15 @@ package server
 
 import (
 	"crypto/rsa"
-	"github.com/gorilla/mux"
-	"github.com/vleukhin/prom-light/internal/http-handlers"
-	"github.com/vleukhin/prom-light/internal/middlewares"
-	"github.com/vleukhin/prom-light/internal/storage"
 	"hash"
 	"net"
 	"net/http"
+
+	"github.com/gorilla/mux"
+
+	http_handlers "github.com/vleukhin/prom-light/internal/http-handlers"
+	"github.com/vleukhin/prom-light/internal/middlewares"
+	"github.com/vleukhin/prom-light/internal/storage"
 )
 
 func NewHTTPServer(
@@ -17,7 +19,7 @@ func NewHTTPServer(
 	hasher hash.Hash,
 	key *rsa.PrivateKey,
 	trustedSubnet net.IPNet,
-) Server {
+) *http.Server {
 	router := NewRouter(str, hasher, key, trustedSubnet)
 	return &http.Server{Addr: addr, Handler: router}
 }

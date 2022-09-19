@@ -4,9 +4,10 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
-	"github.com/pkg/errors"
 	"hash"
 	"net/http"
+
+	"github.com/pkg/errors"
 
 	"github.com/rs/zerolog/log"
 
@@ -69,7 +70,7 @@ func newServer(cfg *config.ServerConfig, str storage.MetricsStorage) (Server, er
 	case config.ProtocolHTTP:
 		server = NewHTTPServer(cfg.Addr, str, hasher, privateKey, cfg.TrustedSubnet)
 	case config.ProtocolGRPC:
-		server = NewGRPCServer(str)
+		server = NewGRPCServer(cfg.Addr, str)
 	default:
 		return nil, errors.New("unknown protocol: " + cfg.Protocol)
 	}
@@ -99,7 +100,7 @@ func newStorage(cfg *config.ServerConfig) (storage.MetricsStorage, error) {
 	return str, err
 }
 
-// Run запукает сервер сбора метрик
+// Run запускает сервер сбора метрик
 func (s *App) Run(err chan<- error) {
 	log.Info().Msgf("Metrics %s server listen at: %s", s.cfg.Protocol, s.cfg.Addr)
 	err <- s.server.ListenAndServe()

@@ -2,10 +2,12 @@ package server
 
 import (
 	"context"
+
+	"google.golang.org/grpc/codes"
+
 	"github.com/vleukhin/prom-light/internal/metrics"
 	"github.com/vleukhin/prom-light/internal/proto"
 	"github.com/vleukhin/prom-light/internal/storage"
-	"google.golang.org/grpc/codes"
 
 	"net"
 
@@ -30,7 +32,7 @@ func newMetricsServer(store storage.MetricsStorage) proto.MetricsServer {
 }
 
 func (s MetricsServer) UpdateMetric(ctx context.Context, request *proto.UpdateMetricRequest) (*proto.UpdateMetricResponse, error) {
-	m, err := metricFromGRPC(request.Metric)
+	m, err := metrics.FromProto(request.Metric)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "unknown metric type '%s'", request.Metric.Type)
 	}
@@ -46,7 +48,7 @@ func (s MetricsServer) UpdateMetric(ctx context.Context, request *proto.UpdateMe
 func (s MetricsServer) UpdateMetricsBatch(ctx context.Context, request *proto.UpdateMetricsBatchRequest) (*proto.UpdateMetricsBatchResponse, error) {
 	mtrcs := make(metrics.Metrics, len(request.Metrics))
 	for _, i := range request.Metrics {
-		m, err := metricFromGRPC(i)
+		m, err := metrics.FromProto(i)
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "unknown metric type '%s'", i.Type)
 		}
@@ -79,7 +81,7 @@ func (s MetricsServer) GetMetric(ctx context.Context, request *proto.GetMetricRe
 	}
 
 	return &proto.GetMetricResponse{
-		Metric: metricToGRPC(m),
+		Metric: metrics.ToProto(m),
 	}, nil
 }
 
@@ -97,53 +99,12 @@ func (s GRPSServer) Shutdown(_ context.Context) error {
 	return nil
 }
 
-func NewGRPCServer(store storage.MetricsStorage) Server {
+func NewGRPCServer(addr string, store storage.MetricsStorage) GRPSServer {
 	server := grpc.NewServer()
 	proto.RegisterMetricsServer(server, newMetricsServer(store))
 
 	return GRPSServer{
-		server: grpc.NewServer(),
-	}
-}
-
-func metricFromGRPC(metric *proto.Metric) (metrics.Metric, error) {
-	switch metric.Type {
-	case proto.MetricType_GAUGE:
-		return metrics.MakeGaugeMetric(metric.Name, metrics.Gauge(metric.Value)), nil
-	case proto.MetricType_COUNTER:
-		return metrics.MakeCounterMetric(metric.Name, metrics.Counter(metric.Delta)), nil
-	default:
-		return metrics.Metric{}, status.Errorf(codes.InvalidArgument, "unknown metric type '%s'", metric.Type)
-	}
-}
-
-func metricToGRPC(metric metrics.Metric) *proto.Metric {
-	m := &proto.Metric{
-		Name:  metric.Name,
-		Type:  metricTypeToGRPC(metric.Type),
-		Value: float64(*metric.Value),
-		Delta: int64(*metric.Delta),
-	}
-
-	switch metric.Type {
-	case metrics.GaugeTypeName:
-		if metric.Value != nil {
-			m.Value = float64(*metric.Value)
-		}
-	default:
-		if metric.Delta != nil {
-			m.Delta = int64(*metric.Delta)
-		}
-	}
-
-	return m
-}
-
-func metricTypeToGRPC(t string) proto.MetricType {
-	switch t {
-	case metrics.GaugeTypeName:
-		return proto.MetricType_GAUGE
-	default:
-		return proto.MetricType_COUNTER
+		addr:   addr,
+		server: server,
 	}
 }
