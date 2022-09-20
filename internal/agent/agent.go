@@ -1,20 +1,15 @@
-package internal
+package agent
 
 import (
-	"bytes"
 	"context"
 	"crypto/hmac"
-	"crypto/rsa"
 	"crypto/sha256"
-	"encoding/json"
-	"errors"
-	"fmt"
 	"hash"
 	mrand "math/rand"
-	"net/http"
-	"os"
-	"strconv"
+	"net"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/vleukhin/prom-light/internal/config"
 
@@ -32,36 +27,39 @@ type Poller interface {
 	Poll() (metrics.Metrics, error)
 }
 
-// Agent описывает агент для сбра метрик
-type Agent struct {
+type Client interface {
+	SendMetricToServer(ctx context.Context, m metrics.Metric) error
+	SendBatchMetricsToServer(ctx context.Context, m metrics.Metrics) error
+	ShutDown() error
+}
+
+// App описывает агент для сбра метрик
+type App struct {
 	storage      storage.MetricsStorage
 	reportTicker *time.Ticker
 	pollTicker   *time.Ticker
-	client       http.Client
+	client       Client
 	cfg          *config.AgentConfig
 	pollers      []Poller
 	hasher       hash.Hash
 	cancel       context.CancelFunc
-	publicKey    *rsa.PublicKey
 }
 
-// NewAgent создаёт новый агент для сбора метрик
-func NewAgent(config *config.AgentConfig) (*Agent, error) {
+// NewApp создаёт новый агент для сбора метрик
+func NewApp(config *config.AgentConfig) (*App, error) {
 	mrand.Seed(time.Now().Unix())
 
-	client := http.Client{}
-	client.Timeout = config.ReportTimeout.Duration
+	client, err := newClient(config)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create agent client")
+	}
 
-	agent := Agent{
+	agent := App{
 		storage:      storage.NewMemoryStorage(),
 		reportTicker: time.NewTicker(config.ReportInterval.Duration),
 		pollTicker:   time.NewTicker(config.PollInterval.Duration),
 		client:       client,
 		cfg:          config,
-	}
-
-	if err := agent.setPublicKey(); err != nil {
-		return nil, err
 	}
 
 	if config.Key != "" {
@@ -74,20 +72,36 @@ func NewAgent(config *config.AgentConfig) (*Agent, error) {
 	return &agent, nil
 }
 
-func (c *Agent) setPublicKey() error {
-	if c.cfg.CryptoKey == "" {
-		return nil
-	}
-	b, err := os.ReadFile(c.cfg.CryptoKey)
+func newClient(cfg *config.AgentConfig) (Client, error) {
+	var client Client
+	addr, err := detectIP()
 	if err != nil {
-		return err
+		return nil, errors.Wrap(err, "Failed to detect host IP")
 	}
-	c.publicKey, err = crypt.BytesToPublicKey(b)
-	return err
+
+	key, err := crypt.GetPublicKeyFromFile(cfg.CryptoKey)
+	if err != nil {
+		return nil, err
+	}
+
+	switch cfg.Protocol {
+	case config.ProtocolHTTP:
+		client = NewHTTPClient(cfg.ServerAddr, addr.IP, cfg.ReportTimeout.Duration, key)
+	case config.ProtocolGRPC:
+		client, err = NewGRPCClient(cfg.ServerAddr)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to create GRPC client")
+		}
+	default:
+		return nil, errors.New("unknown protocol: " + cfg.Protocol)
+	}
+
+	return client, nil
 }
 
 // Start запускает сбор и отправку метрик
-func (c *Agent) Start(ctx context.Context, cancel context.CancelFunc) {
+func (c *App) Start(ctx context.Context, cancel context.CancelFunc) {
+	log.Info().Msgf("%s agent started", c.cfg.Protocol)
 	c.cancel = cancel
 	metricsCh := make(chan metrics.Metrics)
 
@@ -107,7 +121,7 @@ reportLoop:
 	c.Stop(ctx)
 }
 
-func (c *Agent) poll(ctx context.Context, metricsCh chan<- metrics.Metrics) {
+func (c *App) poll(ctx context.Context, metricsCh chan<- metrics.Metrics) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error().Msgf("poll() panics: %v", r)
@@ -131,7 +145,7 @@ func (c *Agent) poll(ctx context.Context, metricsCh chan<- metrics.Metrics) {
 	}
 }
 
-func (c *Agent) storeMetrics(ctx context.Context, metricsCh chan metrics.Metrics) {
+func (c *App) storeMetrics(ctx context.Context, metricsCh chan metrics.Metrics) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error().Msgf("storeMetrics() panics: %v", r)
@@ -147,28 +161,33 @@ func (c *Agent) storeMetrics(ctx context.Context, metricsCh chan metrics.Metrics
 }
 
 // Stop останавливает сбор и отправку метрик
-func (c *Agent) Stop(ctx context.Context) {
+func (c *App) Stop(ctx context.Context) {
 	log.Info().Msg("Stopping agent")
 	c.report(ctx)
 	c.reportTicker.Stop()
+	err := c.client.ShutDown()
+	if err != nil {
+		log.Error().Err(err).Msg("got error while stopping client")
+	}
 	c.cancel()
 }
 
 // report отправляет собранные метрики на сервер
-func (c *Agent) report(ctx context.Context) {
+func (c *App) report(ctx context.Context) {
 	mtrcs, err := c.storage.GetAllMetrics(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get metrics to report")
 	}
 	log.Info().Msg("Sending metrics")
+	mtrcs = mtrcs.Sign(c.hasher)
 	if c.cfg.BatchMode {
-		err := c.sendReportBatchRequest(mtrcs)
+		err := c.client.SendBatchMetricsToServer(ctx, mtrcs)
 		if err != nil {
 			log.Error().Msg("Error occurred while reporting batch of metrics:" + err.Error())
 		}
 	} else {
 		for _, m := range mtrcs {
-			err := c.sendReportRequest(m)
+			err := c.client.SendMetricToServer(ctx, m)
 			if err != nil {
 				log.Error().Msg("Error occurred while reporting " + m.Name + " metric:" + err.Error())
 			}
@@ -176,62 +195,12 @@ func (c *Agent) report(ctx context.Context) {
 	}
 }
 
-// sendReportRequest отправляет запрос на сервер метрик
-func (c *Agent) sendReportRequest(m metrics.Metric) error {
-	m.Sign(c.hasher)
-
-	data, err := json.Marshal(m)
-	if err != nil {
-		return err
-	}
-
-	resp, err := c.client.Post(fmt.Sprintf("http://%s/update/", c.cfg.ServerAddr), "application/json", bytes.NewBuffer(data))
-	if err != nil {
-		return err
-	}
-	err = resp.Body.Close()
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return errors.New("bad response while reporting: " + strconv.Itoa(resp.StatusCode))
-	}
-
-	return nil
-}
-
-// sendReportRequest отправляет batch запрос на сервер метрик
-func (c *Agent) sendReportBatchRequest(m metrics.Metrics) error {
-	data, err := c.encrypt(m)
-	if err != nil {
-		return err
-	}
-
-	resp, err := c.client.Post(fmt.Sprintf("http://%s/updates/", c.cfg.ServerAddr), "application/json", bytes.NewBuffer(data))
-	if err != nil {
-		return err
-	}
-	err = resp.Body.Close()
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return errors.New("bad response while batch reporting: " + strconv.Itoa(resp.StatusCode))
-	}
-
-	return nil
-}
-
-// encrypt encrypts metrics with public key
-func (c *Agent) encrypt(m metrics.Metrics) ([]byte, error) {
-	data, err := json.Marshal(m.Sign(c.hasher))
+func detectIP() (*net.UDPAddr, error) {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	// handle err...
 	if err != nil {
 		return nil, err
 	}
-
-	if c.publicKey == nil {
-		return data, nil
-	}
-
-	return crypt.EncryptOAEP(c.publicKey, data, nil)
+	defer conn.Close()
+	return conn.LocalAddr().(*net.UDPAddr), nil
 }

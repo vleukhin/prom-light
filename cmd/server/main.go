@@ -9,12 +9,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/vleukhin/prom-light/internal/config"
-
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/vleukhin/prom-light/internal"
+	"github.com/vleukhin/prom-light/internal/config"
+	"github.com/vleukhin/prom-light/internal/server"
 )
 
 var buildVersion = "N/A"
@@ -35,23 +34,23 @@ func main() {
 
 	zerolog.SetGlobalLevel(logLevel)
 
-	server, err := internal.NewMetricsServer(cfg)
+	app, err := server.NewApp(cfg)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to create server")
+		log.Fatal().Err(err).Msg("Failed to create app")
 	}
 
 	errChan := make(chan error)
 	sigChan := make(chan os.Signal, 1)
 
-	go server.Run(errChan)
-	defer func(server *internal.MetricsServer) {
+	go app.Run(errChan)
+	defer func(server *server.App) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		err := server.Stop(ctx)
 		cancel()
 		if err != nil {
 			log.Fatal().Err(err)
 		}
-	}(server)
+	}(app)
 
 	signal.Ignore(syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)

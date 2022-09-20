@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package metrics;
+
+option go_package = "demo/proto";
+
+enum MetricType {
+  UNSPECIFIED = 0;
+  GAUGE = 1;
+  COUNTER = 2;
+}
+
+message Metric {
+  string name = 1;
+  MetricType type = 2;
+  double value = 3;
+  int64 delta = 4;
+}
+
+message UpdateMetricRequest {
+  Metric metric = 1;
+}
+
+message UpdateMetricsBatchRequest {
+  repeated Metric metrics = 1;
+}
+
+message GetMetricRequest {
+  MetricType type = 1;
+  string name = 2 ;
+}
+
+message UpdateMetricResponse {}
+message UpdateMetricsBatchResponse {}
+message GetMetricResponse {
+  Metric metric = 1;
+}
+
+service Metrics {
+  rpc UpdateMetric(UpdateMetricRequest) returns (UpdateMetricResponse);
+  rpc UpdateMetricsBatch(UpdateMetricsBatchRequest) returns (UpdateMetricsBatchResponse);
+  rpc GetMetric(GetMetricRequest) returns (GetMetricResponse);
+}

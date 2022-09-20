@@ -1,9 +1,10 @@
-package internal
+package server
 
 import (
 	"bytes"
 	"context"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -120,7 +121,7 @@ func TestUpdateMetricHandler_ServeHTTP(t *testing.T) {
 	}
 
 	mockStorage := storage.NewMockStorage()
-	testServer := httptest.NewServer(NewRouter(mockStorage, nil, nil))
+	testServer := httptest.NewServer(NewRouter(mockStorage, nil, nil, net.IPNet{}))
 	defer testServer.Close()
 
 	for _, tt := range tests {
@@ -212,7 +213,7 @@ func TestGetMetricHandler_ServeHTTP(t *testing.T) {
 	}
 
 	mockStorage := storage.NewMockStorage()
-	testServer := httptest.NewServer(NewRouter(mockStorage, nil, nil))
+	testServer := httptest.NewServer(NewRouter(mockStorage, nil, nil, net.IPNet{}))
 	defer testServer.Close()
 	ctx := context.Background()
 
@@ -247,7 +248,7 @@ func TestGetMetricHandler_ServeHTTP(t *testing.T) {
 func TestHomeHandler_ServeHTTP(t *testing.T) {
 	mockStorage := storage.NewMockStorage()
 	_ = mockStorage.IncCounter(context.Background(), "foo", 1)
-	testServer := httptest.NewServer(NewRouter(mockStorage, nil, nil))
+	testServer := httptest.NewServer(NewRouter(mockStorage, nil, nil, net.IPNet{}))
 	req, err := http.NewRequest(http.MethodGet, testServer.URL, nil)
 	require.NoError(t, err)
 
@@ -308,7 +309,7 @@ func TestUpdateMetricJSONHandler_ServeHTTP(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockStorage := storage.NewMockStorage()
-			testServer := httptest.NewServer(NewRouter(mockStorage, nil, nil))
+			testServer := httptest.NewServer(NewRouter(mockStorage, nil, nil, net.IPNet{}))
 			defer testServer.Close()
 
 			req, err := http.NewRequest(http.MethodPost, testServer.URL+"/update/", bytes.NewBuffer(tt.payload))
@@ -377,7 +378,7 @@ func TestBatchUpdateMetricJSONHandler_ServeHTTP(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockStorage := storage.NewMockStorage()
-			testServer := httptest.NewServer(NewRouter(mockStorage, nil, nil))
+			testServer := httptest.NewServer(NewRouter(mockStorage, nil, nil, net.IPNet{}))
 			defer testServer.Close()
 
 			req, err := http.NewRequest(http.MethodPost, testServer.URL+"/updates/", bytes.NewBuffer(tt.payload))
@@ -454,7 +455,7 @@ func TestGetMetricJSONHandler_ServeHTTP(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockStorage := storage.NewMockStorage()
-			testServer := httptest.NewServer(NewRouter(mockStorage, nil, nil))
+			testServer := httptest.NewServer(NewRouter(mockStorage, nil, nil, net.IPNet{}))
 			defer testServer.Close()
 
 			for name, value := range tt.metrics.gauges {
@@ -484,9 +485,10 @@ func TestGetMetricJSONHandler_ServeHTTP(t *testing.T) {
 }
 
 func TestServer_Start(t *testing.T) {
-	server, err := NewMetricsServer(&config.ServerConfig{
+	server, err := NewApp(&config.ServerConfig{
 		Addr:      "localhost:9999",
 		StoreFile: "/tmp/server_test",
+		Protocol:  config.ProtocolHTTP,
 	})
 	if err != nil {
 		t.Error(err)

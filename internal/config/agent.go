@@ -17,6 +17,7 @@ type AgentConfig struct {
 	BatchMode      bool     `env:"BATCH_MODE" json:"batch_mode"`
 	LogLevel       string   `env:"LOG_LEVEL" json:"log_level"`
 	CryptoKey      string   `env:"CRYPTO_KEY" json:"crypto_key"`
+	Protocol       string   `env:"PROTOCOL" json:"protocol"`
 }
 
 func (cfg *AgentConfig) Parse() error {
@@ -32,6 +33,7 @@ func (cfg *AgentConfig) Parse() error {
 	batch := pflag.BoolP("batch", "b", true, "Report metrics in batches")
 	logLevel := pflag.StringP("log-level", "l", "info", "Setup log level")
 	cryptoKey := pflag.StringP("crypto-key", "e", "", "Path to public key")
+	proto := pflag.StringP("protocol", "c", "http", "Server protocol (http or grpc")
 
 	pflag.Parse()
 
@@ -43,6 +45,7 @@ func (cfg *AgentConfig) Parse() error {
 	cfg.BatchMode = *batch
 	cfg.LogLevel = *logLevel
 	cfg.CryptoKey = *cryptoKey
+	cfg.Protocol = *proto
 
 	err = env.ParseWithFuncs(cfg, parseFuncs())
 	if err != nil {
